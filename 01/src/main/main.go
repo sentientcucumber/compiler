@@ -38,8 +38,8 @@ func main() {
 // L3: Id, AssignOp, Id, PlusOp, LParen, Id, MinusOp, Id, RParen, MinusOp,
 //     IntLiteral, SemiColon
 // L4: Id, AssignOp, LParen, LParen, Id, MinusOp, LParen, IntLiteral, RParen,
-//     PlusOp, LParen, PlusOp, LParen, Id, PlusOp, Id, RParen, RParen, RParen
-//     MinusOp, LParen, IntLiteral, MinusOp, Id, RParen, SemiColon
+//     PlusOp, LParen, Id, PlusOp, LParen, Id, PlusOp, Id, RParen, RParen,
+//     RParen, MinusOp, LParen, IntLiteral, MinusOp, Id, RParen, SemiColon
 // L5: WriteSym, LParen, Id, Comma, Id, PlusOp, Id, RParen, SemiColon
 // L6: Nothing, comments aren't dealt with
 // L7: EndSym

@@ -26,40 +26,18 @@ func (c *Compiler) Scanner() Token {
          var currChar byte
          c.Read(&currChar)
 
-         switch currChar {
-         case '(': return LParen
-         case ')': return RParen
-         case ';': return SemiColon
-         case ',': return Comma
-         case '+': return PlusOp
-         case ':':
-            if nextChar, _ := c.Inspect(); nextChar == '=' {
-               c.Advance()
-               return AssignOp
-            } else {
-               return BadToken
-            }
-            
-         case '-':
-            if nextChar, _ := c.Inspect(); nextChar == '-' {
-               err := c.Read(&currChar)
-
-               for currChar != '\n' && err == nil {
-                  c.Read(&currChar)
-               }
-            } else {
-               return MinusOp
-            }
-         }
-
          switch {
+         case unicode.IsSpace(rune(currChar)):
+            break
+
          case unicode.IsLetter(rune(currChar)):
             c.BufferChar(currChar)
 
             for {
                if nextChar, _ := c.Inspect();
                   unicode.IsLetter(rune(nextChar)) ||
-                  unicode.IsDigit(rune(nextChar)) {
+                  unicode.IsDigit(rune(nextChar)) ||
+                  nextChar == '_' {
                      c.BufferChar(nextChar)
                      c.Advance()
                } else {
@@ -77,6 +55,31 @@ func (c *Compiler) Scanner() Token {
                } else {
                   return IntLiteral
                }
+            }
+
+         case currChar == '(': return LParen
+         case currChar == ')': return RParen
+         case currChar == ';': return SemiColon
+         case currChar == ',': return Comma
+         case currChar == '+': return PlusOp
+
+         case currChar == ':':
+            if nextChar, _ := c.Inspect(); nextChar == '=' {
+               c.Advance()
+               return AssignOp
+            } else {
+               return BadToken
+            }
+            
+         case currChar == '-':
+            if nextChar, _ := c.Inspect(); nextChar == '-' {
+               err := c.Read(&currChar)
+
+               for currChar != '\n' && err == nil {
+                  c.Read(&currChar)
+               }
+            } else {
+               return MinusOp
             }
          }
       }
