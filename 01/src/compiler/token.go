@@ -18,5 +18,6 @@ const (
    MinusOp Token = "MinusOp"
    EofSym Token = "EofSym"
    Empty Token = ""
+   BadToken Token = "BadToken"
 )
 

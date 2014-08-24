@@ -9,7 +9,7 @@ import (
 
 func main() {
    // open file, if an error is returned, stop all processes
-   file, fileError := os.Open("tokens.micro")
+   file, fileError := os.Open("sample.micro")
    if fileError != nil {
       panic(fileError)
    }

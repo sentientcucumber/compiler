@@ -5,7 +5,6 @@ import (
    "bytes"
    "io"
    "unicode"
-   "fmt"
 )
 
 type Compiler struct {
@@ -33,6 +32,24 @@ func (c *Compiler) Scanner() Token {
          case ';': return SemiColon
          case ',': return Comma
          case '+': return PlusOp
+         case ':':
+            if nextChar, _ := c.Inspect(); nextChar == '=' {
+               c.Advance()
+               return AssignOp
+            } else {
+               return BadToken
+            }
+            
+         case '-':
+            if nextChar, _ := c.Inspect(); nextChar == '-' {
+               err := c.Read(&currChar)
+
+               for currChar != '\n' && err == nil {
+                  c.Read(&currChar)
+               }
+            } else {
+               return MinusOp
+            }
          }
 
          switch {
@@ -43,17 +60,28 @@ func (c *Compiler) Scanner() Token {
                if nextChar, _ := c.Inspect();
                   unicode.IsLetter(rune(nextChar)) ||
                   unicode.IsDigit(rune(nextChar)) {
+                     c.BufferChar(nextChar)
+                     c.Advance()
+               } else {
+                  return c.CheckReserved()
+               }
+            }
+
+         case unicode.IsDigit(rune(currChar)):
+            c.BufferChar(currChar)
+
+            for {
+               if nextChar, _ := c.Inspect(); unicode.IsDigit(rune(nextChar)) {
                   c.BufferChar(nextChar)
                   c.Advance()
                } else {
-                  c.CheckReserved()
-                  return Id
+                  return IntLiteral
                }
             }
          }
       }
    }
-   return Empty
+   return EofSym
 }
 
 // Reads the next byte, will return an error if EOF
@@ -95,7 +123,7 @@ func (c *Compiler) ClearBuffer() {
 }
 
 // Determines if the tokenBuffer is a keyword or an Id
-func (c *Compiler) CheckReserved() {
+func (c *Compiler) CheckReserved() Token {
    // define a dictionary of the value in the buffer to Tokens
    dictionary := map[string]Token {
       "BEGIN": BeginSym,
@@ -105,8 +133,11 @@ func (c *Compiler) CheckReserved() {
    }
 
    buf := c.tokenBuffer.String()
-   
-
+   if value, exists := dictionary[buf]; exists {
+      return value
+   } else {
+      return Id
+   }
 }
 
 // Will return true if its the end of file, false if not
