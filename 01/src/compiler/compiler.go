@@ -2,71 +2,122 @@ package compiler
 
 import (
    "bufio"
-   "os"
    "bytes"
+   "io"
+   "unicode"
+   "fmt"
 )
 
 type Compiler struct {
    Reader bufio.Reader
-   buffer bytes.Buffer
-}
-
-// Sets up a file for reading, will stop program if the file doesn't exist
-func (c *Compiler) Compiler(filename string) {
-   // open file, if an error is returned, stop all processes
-   file, fileError := os.Open(filename)
-   if fileError != nil {
-      panic(fileError)
-   }
-   
-   // finally, create the Reader to be used later
-   reader := bufio.NewReader(file)
-   reader.Peek(0)
+   tokenBuffer bytes.Buffer
 }
 
 func (c *Compiler) Scanner() Token {
    // clear the buffer
    c.ClearBuffer()
 
-   // read the next character
-   char, _, readError := c.Reader.ReadRune()
-
-   if readError != nil {
+   if c.Eof() {
       return EofSym
-      os.Exit(0)
    } else {
-      for readError == nil {
-         c.Read(char)
+      // start reading the next chunk of bytes
+      for !c.Eof() {
+
+         // read the char current character
+         var currChar byte
+         c.Read(&currChar)
+
+         switch currChar {
+         case '(': return LParen
+         case ')': return RParen
+         case ';': return SemiColon
+         case ',': return Comma
+         case '+': return PlusOp
+         }
+
+         switch {
+         case unicode.IsLetter(rune(currChar)):
+            c.BufferChar(currChar)
+
+            for {
+               if nextChar, _ := c.Inspect();
+                  unicode.IsLetter(rune(nextChar)) ||
+                  unicode.IsDigit(rune(nextChar)) {
+                  c.BufferChar(nextChar)
+                  c.Advance()
+               } else {
+                  c.CheckReserved()
+                  return Id
+               }
+            }
+         }
       }
    }
-
-   return SemiColon
+   return Empty
 }
 
-func (c *Compiler) Read(char rune) {
+// Reads the next byte, will return an error if EOF
+func (c *Compiler) Read(char *byte) error {
+   var err error
    
+   if !c.Eof() {
+      *char, err = c.Reader.ReadByte()
+      return nil
+   } else {
+      return err
+   }
 }
 
-// func (s *Scanner) Inspect() rune {
+// Returns the next character but does not advance the cursor
+func (c *Compiler) Inspect() (char byte, err error) {
+   if char, err := c.Reader.ReadByte(); err == nil {
+      c.Reader.UnreadByte()
 
-// }
+      return char, nil
+   } else {
+      return 0, err
+   }
+}
 
-// func (s *Scanner) Advance() {
+// Advances the cursor, does not return the character
+func (c *Compiler) Advance() {
+   c.Reader.ReadByte()
+}
 
-// }
+// Adds the character to the tokenBuffer
+func (c *Compiler) BufferChar(char byte) {
+   c.tokenBuffer.WriteByte(char)
+}
 
-// func (s *Scanner) Eof() bool {
-
-// }
-
-// func (s *Scanner) BufferChar(c rune) {
-
-// }
-
+// Clears out the tokenBuffer
 func (c *Compiler) ClearBuffer() {
-   c.buffer.Reset()
+   c.tokenBuffer.Reset()
 }
 
-// func (s *Scanner) CheckReserved() {
+// Determines if the tokenBuffer is a keyword or an Id
+func (c *Compiler) CheckReserved() {
+   // define a dictionary of the value in the buffer to Tokens
+   dictionary := map[string]Token {
+      "BEGIN": BeginSym,
+      "END": EndSym,
+      "READ": ReadSym,
+      "WRITE": WriteSym,
+   }
 
-// }
+   buf := c.tokenBuffer.String()
+   
+
+}
+
+// Will return true if its the end of file, false if not
+func (c *Compiler) Eof() bool {
+   if _, err := c.Reader.ReadByte(); err == io.EOF {
+      c.Reader.UnreadByte();
+
+      return true
+   } else {
+      c.Reader.UnreadByte();
+
+      return false
+   }
+}
