@@ -1,3 +1,9 @@
+// Author: Michael Hunsinger
+// Date:   Aug 24 2014
+// File:   compiler.go
+// The compiler class, primarily uses the Scanner function to read a file
+// to return a token
+
 package compiler
 
 import (
@@ -5,6 +11,7 @@ import (
    "bytes"
    "io"
    "unicode"
+   "fmt"
 )
 
 type Compiler struct {
@@ -12,6 +19,7 @@ type Compiler struct {
    tokenBuffer bytes.Buffer
 }
 
+// 
 func (c *Compiler) Scanner() Token {
    // clear the buffer
    c.ClearBuffer()
@@ -68,7 +76,7 @@ func (c *Compiler) Scanner() Token {
                c.Advance()
                return AssignOp
             } else {
-               return BadToken
+               panic(fmt.Errorf("Lexical error when reading %c", currChar))
             }
             
          case currChar == '-':
@@ -81,6 +89,8 @@ func (c *Compiler) Scanner() Token {
             } else {
                return MinusOp
             }
+         default:
+            panic(fmt.Errorf("Lexical error when reading %c", currChar))
          }
       }
    }

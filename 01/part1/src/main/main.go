@@ -1,3 +1,9 @@
+// Author: Michael Hunsinger
+// Date:   Aug 24 2014
+// File:   main.go
+// Reads the specified file and prints out a list of tokens
+// Read the README.pdf for more information on compiling and running the file
+
 package main
 
 import (
@@ -25,21 +31,8 @@ func main() {
    reader := bufio.NewReader(file)
    c := compiler.Compiler { Reader: *reader }
 
-   // read through the file
+   // read through the file by calling Scanner
    for tok := c.Scanner() ; tok != compiler.EofSym; tok = c.Scanner() {
       fmt.Printf("%v\n", tok)
    }
 }
-
-// TODO
-// By inspection, what the list of tokens should be:
-// L1: BeginSym 
-// L2: ReadSym, LParen, Id, Comma, Id, Comma, Id, Comma, Id, RParen, SemiColon
-// L3: Id, AssignOp, Id, PlusOp, LParen, Id, MinusOp, Id, RParen, MinusOp,
-//     IntLiteral, SemiColon
-// L4: Id, AssignOp, LParen, LParen, Id, MinusOp, LParen, IntLiteral, RParen,
-//     PlusOp, LParen, Id, PlusOp, LParen, Id, PlusOp, Id, RParen, RParen,
-//     RParen, MinusOp, LParen, IntLiteral, MinusOp, Id, RParen, SemiColon
-// L5: WriteSym, LParen, Id, Comma, Id, PlusOp, Id, RParen, SemiColon
-// L6: Nothing, comments aren't dealt with
-// L7: EndSym

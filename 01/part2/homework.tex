@@ -1,0 +1,63 @@
+% Created 2014-08-25 Mon 00:13
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\author{Michael Hunsinger}
+\date{\today}
+\title{Assignment 1, Part II}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 24.3.1 (Org mode 8.2.7c)}}
+\begin{document}
+
+\maketitle
+
+\section{Extended Micro Grammer}
+\label{sec-1}
+Write an extended Micro Grammer to include the equality and exponentiation
+operators. The following grammers are meant to supplement the existing 
+grammer explained in class.\newline
+We will need the following definitions that were already defined in class.
+\begin{verbatim}
+<expression> -> <primary> | <primary> <add op> <expression>
+<primary>    -> LParen <expression> RParen
+<primary>    -> Id
+<primary>    -> IntLiteral
+<add op>     -> PlusOp | MinusOp
+\end{verbatim}
+
+\subsection{Exponential}
+\label{sec-1-1}
+The exponentiation should have higher precedence than \texttt{PlusOp} and 
+\texttt{MinusOp} and should group from right to left, that is, 
+\texttt{A**B**C = A**(B**C)}.
+\begin{verbatim}
+<expression> -> <primary> | <primary> <exponent> LParen <expression> RParen
+<exponent>   -> ExpOp
+\end{verbatim}
+
+\subsection{Equality}
+\label{sec-1-2}
+The equality operator should have lower precednce than plus and minus,
+and should not group, that is, \texttt{(A = B = C)} is not allowed.
+\begin{verbatim}
+<bool expression> -> <expression> <bool> <expression>
+<bool>            -> EqualityOp
+\end{verbatim}
+% Emacs 24.3.1 (Org mode 8.2.7c)
+\end{document}

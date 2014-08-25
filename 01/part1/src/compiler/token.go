@@ -1,3 +1,8 @@
+// Author: Michael Hunsinger
+// Date:   Aug 24 2014
+// File:   compiler.go
+// The Token class, enumerations for allowable Tokens
+
 package compiler
 
 type Token string
@@ -17,7 +22,5 @@ const (
    PlusOp Token = "PlusOp"
    MinusOp Token = "MinusOp"
    EofSym Token = "EofSym"
-   Empty Token = ""
-   BadToken Token = "BadToken"
 )
 
