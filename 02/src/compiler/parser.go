@@ -37,23 +37,15 @@ func (p *Parser) NextToken () Token {
    return next
 }
 
-// try to get this working later
-// func (p *Parser) PrintState (old, new string) {
-//    temp := p.currState
-//    p.currState = strings.Replace(p.currState, old, new, 1)
-
-//    if temp != p.currState {
-//       fmt.Println(p.currState)
-//    } 
-// }
-
 // SystemGoal definition according to grammar
 func (p *Parser) SystemGoal() {
+   fmt.Println("Parsing system goal")
    p.Program()
 }
 
 // Program definition according to grammar
 func (p *Parser) Program() {
+   fmt.Println("Parsing program")
    p.Match(BeginSym)
    p.StatementList()
    p.Match(EndSym)
@@ -61,16 +53,18 @@ func (p *Parser) Program() {
 
 // StatementList definition according to grammar
 func (p *Parser) StatementList() {
+   fmt.Println("Parsing statement list")
    p.Statement()
 
    if next := p.NextToken();
    next == Id || next == ReadSym || next == WriteSym {
       p.StatementList()
-   } 
+   }
 }
 
 // Statement definition according to grammar
 func (p *Parser) Statement() {
+   fmt.Println("Parsing statement")
    next := p.NextToken()
 
    switch next {
@@ -105,6 +99,7 @@ func (p *Parser) Statement() {
 
 // IdList definition according to grammar
 func (p *Parser) IdList() {
+   fmt.Println("Parsing IdList")
    p.Ident()
    
    if next := p.NextToken(); next == Comma {
@@ -115,15 +110,20 @@ func (p *Parser) IdList() {
 
 // ExpressionList definition according to grammar
 func (p *Parser) ExprList() {
+   fmt.Println("Parsing ExprList")
    p.Expression()
+   
    if next := p.NextToken(); next == Comma {
       p.Match(Comma)
       p.ExprList()
    }
+
+   fmt.Printf("\n")
 }
 
 // Expression definition according to grammar
 func (p *Parser) Expression() {
+   fmt.Println("Parsing Expression")
    p.Primary()
    next := p.NextToken()
 
@@ -135,6 +135,7 @@ func (p *Parser) Expression() {
 
 // Primary definition according to grammar
 func (p *Parser) Primary() {
+   fmt.Println("Parsing Primary")
    next := p.NextToken()
 
    switch next {
@@ -160,11 +161,13 @@ func (p *Parser) Primary() {
 
 // Identifier definition according to grammar
 func (p *Parser) Ident() {
+   fmt.Println("Parsing Ident")
    p.Match(Id)
 }
 
 // AddOp definition according to grammar
 func (p *Parser) AddOp() {
+   fmt.Println("Parsing AddOp")
    next := p.NextToken()
 
    switch next {

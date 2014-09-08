@@ -73,90 +73,40 @@ how to compile and run the program.
 
 * Sample Input and Output
   #+BEGIN_SRC 
-   sample.micro input
-   BEGIN --SOMETHING UNUSUAL
-      READ(A1, New_A, D, B);
-      C:= A1 +(New_A - D) - 75;
-      New_C:=((B - (7) + (C + D))) - (3 - A1); -- STUPID FORMULA
-      WRITE(C, A1 + New_C);
-      -- WHAT ABOUT := B + D;
-   END
+  sample.micro input
+  BEGIN A := B + (72 - C); END
 
-   sample.micro output
-   Legal token: BeginSym, passed token: BeginSym
-   Legal token: ReadSym, passed token: ReadSym
-   Legal token: LParen, passed token: LParen
-   Legal token: Id, passed token: Id
-   Legal token: Comma, passed token: Comma
-   Legal token: Id, passed token: Id
-   Legal token: Comma, passed token: Comma
-   Legal token: Id, passed token: Id
-   Legal token: Comma, passed token: Comma
-   Legal token: Id, passed token: Id
-   Legal token: RParen, passed token: RParen
-   Legal token: SemiColon, passed token: SemiColon
-   Legal token: Id, passed token: Id
-   Legal token: AssignOp, passed token: AssignOp
-   Legal token: Id, passed token: Id
-   Legal token: PlusOp, passed token: PlusOp
-   Legal token: LParen, passed token: LParen
-   Legal token: Id, passed token: Id
-   Legal token: MinusOp, passed token: MinusOp
-   Legal token: Id, passed token: Id
-   Legal token: RParen, passed token: RParen
-   Legal token: MinusOp, passed token: MinusOp
-   Legal token: IntLiteral, passed token: IntLiteral
-   Legal token: SemiColon, passed token: SemiColon
-   Legal token: Id, passed token: Id
-   Legal token: AssignOp, passed token: AssignOp
-   Legal token: LParen, passed token: LParen
-   Legal token: LParen, passed token: LParen
-   Legal token: Id, passed token: Id
-   Legal token: MinusOp, passed token: MinusOp
-   Legal token: LParen, passed token: LParen
-   Legal token: IntLiteral, passed token: IntLiteral
-   Legal token: RParen, passed token: RParen
-   Legal token: PlusOp, passed token: PlusOp
-   Legal token: LParen, passed token: LParen
-   Legal token: Id, passed token: Id
-   Legal token: PlusOp, passed token: PlusOp
-   Legal token: Id, passed token: Id
-   Legal token: RParen, passed token: RParen
-   Legal token: RParen, passed token: RParen
-   Legal token: RParen, passed token: RParen
-   Legal token: MinusOp, passed token: MinusOp
-   Legal token: LParen, passed token: LParen
-   Legal token: IntLiteral, passed token: IntLiteral
-   Legal token: MinusOp, passed token: MinusOp
-   Legal token: Id, passed token: Id
-   Legal token: RParen, passed token: RParen
-   Legal token: SemiColon, passed token: SemiColon
-   Legal token: WriteSym, passed token: WriteSym
-   Legal token: LParen, passed token: LParen
-   Legal token: Id, passed token: Id
-   Legal token: Comma, passed token: Comma
-   Legal token: Id, passed token: Id
-   Legal token: PlusOp, passed token: PlusOp
-   Legal token: Id, passed token: Id
-   Legal token: RParen, passed token: RParen
-
-   sample2.micro input
-   BEGIN A := B + (72 - C); END
-
-   sample2.micro output
-   Legal token: BeginSym, passed token: BeginSym
-   Legal token: Id, passed token: Id
-   Legal token: AssignOp, passed token: AssignOp
-   Legal token: Id, passed token: Id
-   Legal token: PlusOp, passed token: PlusOp
-   Legal token: LParen, passed token: LParen
-   Legal token: IntLiteral, passed token: IntLiteral
-   Legal token: MinusOp, passed token: MinusOp
-   Legal token: Id, passed token: Id
-   Legal token: RParen, passed token: RParen
-   Legal token: SemiColon, passed token: SemiColon
-   Legal token: EndSym, passed token: EndSym
-   #+END_SRC
+  sample.micro output
+  Parsing system goal
+  Parsing program
+  Legal token: BeginSym, passed token: BeginSym
+  Parsing statement list
+  Parsing statement
+  Parsing Ident
+  Legal token: Id, passed token: Id
+  Legal token: AssignOp, passed token: AssignOp
+  Parsing Expression
+  Parsing Primary
+  Parsing Ident
+  Legal token: Id, passed token: Id
+  Parsing AddOp
+  Legal token: PlusOp, passed token: PlusOp
+  Parsing Expression
+  Parsing Primary
+  Legal token: LParen, passed token: LParen
+  Parsing Expression
+  Parsing Primary
+  Legal token: IntLiteral, passed token: IntLiteral
+  Parsing AddOp
+  Legal token: MinusOp, passed token: MinusOp
+  Parsing Expression
+  Parsing Primary
+  Parsing Ident
+  Legal token: Id, passed token: Id
+  Legal token: RParen, passed token: RParen
+  Legal token: SemiColon, passed token: SemiColon
+  Legal token: EndSym, passed token: EndSym
+  #+END_SRC
   
   
   
