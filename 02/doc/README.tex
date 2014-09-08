@@ -1,0 +1,197 @@
+% Created 2014-09-07 Sun 23:01
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\usepackage{titling}
+\addtolength{\topmargin}{-1.375in}
+\addtolength{\textheight}{1.75in}
+\addtolength{\oddsidemargin}{-.375in}
+\addtolength{\evensidemargin}{-.875in}
+\addtolength{\textwidth}{0.75in}
+\usepackage{paralist}
+\let\itemize\compactitem
+\let\description\compactdesc
+\let\enumerate\compactenum
+\author{Michael Hunsinger}
+\date{\today}
+\title{Assignment 1}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 24.3.1 (Org mode 8.2.7c)}}
+\begin{document}
+
+\maketitle
+
+\section{Change log}
+\label{sec-1}
+\begin{itemize}
+\item Changed the Reader from the bufio package to the bytes package. The
+bufio Reader is made to read streaming data and cannot perform seeks.
+\item Changed \verb~compiler.go~ to a \verb~scanner.go~, so it is more appropriately
+named for future implementations.
+\item Added a \verb~parser.go~ file to implement a compiler's parser functionality.
+\item Added the ability to pass in the file on the command line.
+\end{itemize}
+
+\section{Go Documentation}
+\label{sec-2}
+This implentation of the scanner uses Google's new language Go. There are
+instructions on how to setup Go, a description of the file structure, and
+how to compile and run the program.
+
+\subsection{Install Go}
+\label{sec-2-1}
+Download the appropriate installation from Google's Go website,
+\url{http://golang.org/doc/install}, there is additional documentation located
+on website as well.
+
+\subsection{Go's Workspace}
+\label{sec-2-2}
+Extract files from the tarball into the desired location. Inside the root
+folder you will find four directories
+\begin{itemize}
+\item \verb~bin~ compiled executables, along with sample micro program files
+\item \verb~doc~ documentation
+\item \verb~pkg~ package objects (the compiler package is located in here)
+\item \verb~src~ source files
+\begin{itemize}
+\item \verb~compiler~ source files pertaining to the compiler package
+\item \verb~main~ source files pertaining to the main package (the driver file)
+\end{itemize}
+\end{itemize}
+
+We must also setup the \verb~GOPATH~ to ensure proper compilation of the files.
+Follow the steps below to set \verb~GOPATH~ in a *unix environment. 
+\begin{verbatim}
+$ cd ../01
+$ export GOPATH=$HOME/your/path/here/01
+\end{verbatim}
+
+\subsection{Compiling Source Files}
+\label{sec-2-3}
+There are two steps to compile and the executable; building the compiler
+package and then build the executable.
+\begin{verbatim}
+$ cd ../01
+$ go build compiler
+$ go install main
+\end{verbatim}
+Now there is an executable in the \verb~bin~ folder.
+
+\subsection{Running the Program}
+\label{sec-2-4}
+You can run the executable that was compiled. Ensure you are in the 
+directory where the \verb~sample.micro~ file is located.
+\begin{verbatim}
+$ cd ../02/bin
+$ ./main sample.micro
+\end{verbatim}
+This will run scan the \verb~sample.micro~ file. There is also a \verb~sample2.micro~
+file in the \verb~bin~ folder that uses some of the tokens found in the 
+extended Micro language. If you wish to scan this file, you will need to
+change file name in \verb~../src/main/main.go~ on line 18.
+
+\section{Sample output}
+\label{sec-3}
+\begin{verbatim}
+sample.micro input
+BEGIN --SOMETHING UNUSUAL
+   READ(A1, New_A, D, B);
+   C:= A1 +(New_A - D) - 75;
+   New_C:=((B - (7) + (C + D))) - (3 - A1); -- STUPID FORMULA
+   WRITE(C, A1 + New_C);
+   -- WHAT ABOUT := B + D;
+END
+
+sample.micro output
+Legal token: BeginSym, passed token: BeginSym
+Legal token: ReadSym, passed token: ReadSym
+Legal token: LParen, passed token: LParen
+Legal token: Id, passed token: Id
+Legal token: Comma, passed token: Comma
+Legal token: Id, passed token: Id
+Legal token: Comma, passed token: Comma
+Legal token: Id, passed token: Id
+Legal token: Comma, passed token: Comma
+Legal token: Id, passed token: Id
+Legal token: RParen, passed token: RParen
+Legal token: SemiColon, passed token: SemiColon
+Legal token: Id, passed token: Id
+Legal token: AssignOp, passed token: AssignOp
+Legal token: Id, passed token: Id
+Legal token: PlusOp, passed token: PlusOp
+Legal token: LParen, passed token: LParen
+Legal token: Id, passed token: Id
+Legal token: MinusOp, passed token: MinusOp
+Legal token: Id, passed token: Id
+Legal token: RParen, passed token: RParen
+Legal token: MinusOp, passed token: MinusOp
+Legal token: IntLiteral, passed token: IntLiteral
+Legal token: SemiColon, passed token: SemiColon
+Legal token: Id, passed token: Id
+Legal token: AssignOp, passed token: AssignOp
+Legal token: LParen, passed token: LParen
+Legal token: LParen, passed token: LParen
+Legal token: Id, passed token: Id
+Legal token: MinusOp, passed token: MinusOp
+Legal token: LParen, passed token: LParen
+Legal token: IntLiteral, passed token: IntLiteral
+Legal token: RParen, passed token: RParen
+Legal token: PlusOp, passed token: PlusOp
+Legal token: LParen, passed token: LParen
+Legal token: Id, passed token: Id
+Legal token: PlusOp, passed token: PlusOp
+Legal token: Id, passed token: Id
+Legal token: RParen, passed token: RParen
+Legal token: RParen, passed token: RParen
+Legal token: RParen, passed token: RParen
+Legal token: MinusOp, passed token: MinusOp
+Legal token: LParen, passed token: LParen
+Legal token: IntLiteral, passed token: IntLiteral
+Legal token: MinusOp, passed token: MinusOp
+Legal token: Id, passed token: Id
+Legal token: RParen, passed token: RParen
+Legal token: SemiColon, passed token: SemiColon
+Legal token: WriteSym, passed token: WriteSym
+Legal token: LParen, passed token: LParen
+Legal token: Id, passed token: Id
+Legal token: Comma, passed token: Comma
+Legal token: Id, passed token: Id
+Legal token: PlusOp, passed token: PlusOp
+Legal token: Id, passed token: Id
+Legal token: RParen, passed token: RParen
+
+sample2.micro input
+BEGIN A := B + (72 - C); END
+
+sample2.micro output
+Legal token: BeginSym, passed token: BeginSym
+Legal token: Id, passed token: Id
+Legal token: AssignOp, passed token: AssignOp
+Legal token: Id, passed token: Id
+Legal token: PlusOp, passed token: PlusOp
+Legal token: LParen, passed token: LParen
+Legal token: IntLiteral, passed token: IntLiteral
+Legal token: MinusOp, passed token: MinusOp
+Legal token: Id, passed token: Id
+Legal token: RParen, passed token: RParen
+Legal token: SemiColon, passed token: SemiColon
+Legal token: EndSym, passed token: EndSym
+\end{verbatim}
+% Emacs 24.3.1 (Org mode 8.2.7c)
+\end{document}

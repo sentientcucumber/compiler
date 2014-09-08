@@ -21,6 +21,8 @@ const (
    AssignOp Token = "AssignOp"
    PlusOp Token = "PlusOp"
    MinusOp Token = "MinusOp"
+   ExpOp Token = "ExpOp"
+   EqualityOp Token = "EqualityOp"
    EofSym Token = "EofSym"
 )
 

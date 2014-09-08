@@ -1,0 +1,5 @@
+BEGIN -- EXTENDED MICRO LANGUAGE PROGRAM
+   READ(A1, New_A, D, B);
+   A1 + D = B**New_A
+   WRITE(C, A1 + New_C);
+END

@@ -1,108 +1,125 @@
 // Author: Michael Hunsinger
 // Date:   Aug 24 2014
-// File:   compiler.go
-// The compiler class, primarily uses the Scanner function to read a file
-// to return a token
+// File:   scanner.go
+// Definiton for a scanner. Uses the Scan function to return Tokens from a file
 
 package compiler
 
 import (
-   "bufio"
    "bytes"
    "io"
    "unicode"
    "fmt"
 )
 
-type Compiler struct {
-   Reader bufio.Reader
+type Scanner struct {
+   Reader bytes.Reader
    tokenBuffer bytes.Buffer
 }
 
-// 
-func (c *Compiler) Scanner() Token {
+// returns the next token in the file
+func (s *Scanner) Scan() Token {
    // clear the buffer
-   c.ClearBuffer()
+   s.ClearBuffer()
 
-   if c.Eof() {
+   if s.Eof() {
       return EofSym
    } else {
       // start reading the next chunk of bytes
-      for !c.Eof() {
+      for !s.Eof() {
 
          // read the char current character
          var currChar byte
-         c.Read(&currChar)
+         s.Read(&currChar)
 
          switch {
+         // if its a space, do nothing
          case unicode.IsSpace(rune(currChar)):
             break
 
+         // if it's a letter, determine if it's an Id or reserved word
          case unicode.IsLetter(rune(currChar)):
-            c.BufferChar(currChar)
+            s.BufferChar(currChar)
 
             for {
-               if nextChar, _ := c.Inspect();
+               if nextChar, _ := s.Inspect();
                   unicode.IsLetter(rune(nextChar)) ||
                   unicode.IsDigit(rune(nextChar)) ||
                   nextChar == '_' {
-                     c.BufferChar(nextChar)
-                     c.Advance()
+                     s.BufferChar(nextChar)
+                     s.Advance()
                } else {
-                  return c.CheckReserved()
+                  return s.CheckReserved()
                }
             }
 
+         // if it's a digit, it must be a intliteral
          case unicode.IsDigit(rune(currChar)):
-            c.BufferChar(currChar)
+            s.BufferChar(currChar)
 
             for {
-               if nextChar, _ := c.Inspect(); unicode.IsDigit(rune(nextChar)) {
-                  c.BufferChar(nextChar)
-                  c.Advance()
+               if nextChar, _ := s.Inspect(); unicode.IsDigit(rune(nextChar)) {
+                  s.BufferChar(nextChar)
+                  s.Advance()
                } else {
                   return IntLiteral
                }
             }
 
+         // various 'simple' tokens
          case currChar == '(': return LParen
          case currChar == ')': return RParen
          case currChar == ';': return SemiColon
          case currChar == ',': return Comma
          case currChar == '+': return PlusOp
+         case currChar == '=': return EqualityOp
 
+         // determine if it's an assigment, if not lexical error
          case currChar == ':':
-            if nextChar, _ := c.Inspect(); nextChar == '=' {
-               c.Advance()
+            if nextChar, _ := s.Inspect(); nextChar == '=' {
+               s.Advance()
                return AssignOp
             } else {
                panic(fmt.Errorf("Lexical error when reading %c", currChar))
             }
-            
+
+         // determine if MinusOp or comment, if comment, consume and move on
          case currChar == '-':
-            if nextChar, _ := c.Inspect(); nextChar == '-' {
-               err := c.Read(&currChar)
+            if nextChar, _ := s.Inspect(); nextChar == '-' {
+               err := s.Read(&currChar)
 
                for currChar != '\n' && err == nil {
-                  c.Read(&currChar)
+                  s.Read(&currChar)
                }
             } else {
                return MinusOp
             }
+
+            // determine if exponentiation, if not lexical error
+         case currChar == '*':
+            if nextChar, _ := s.Inspect(); nextChar == '*' {
+               s.Advance()
+               return ExpOp
+            } else {
+               panic(fmt.Errorf("Lexical error when reading %c", currChar))
+            }
+
          default:
             panic(fmt.Errorf("Lexical error when reading %c", currChar))
          }
       }
    }
+
+   // if none of these, it must be the EofSym
    return EofSym
 }
 
 // Reads the next byte, will return an error if EOF
-func (c *Compiler) Read(char *byte) error {
+func (s *Scanner) Read(char *byte) error {
    var err error
    
-   if !c.Eof() {
-      *char, err = c.Reader.ReadByte()
+   if !s.Eof() {
+      *char, err = s.Reader.ReadByte()
       return nil
    } else {
       return err
@@ -110,9 +127,9 @@ func (c *Compiler) Read(char *byte) error {
 }
 
 // Returns the next character but does not advance the cursor
-func (c *Compiler) Inspect() (char byte, err error) {
-   if char, err := c.Reader.ReadByte(); err == nil {
-      c.Reader.UnreadByte()
+func (s *Scanner) Inspect() (char byte, err error) {
+   if char, err := s.Reader.ReadByte(); err == nil {
+      s.Reader.UnreadByte()
 
       return char, nil
    } else {
@@ -121,22 +138,22 @@ func (c *Compiler) Inspect() (char byte, err error) {
 }
 
 // Advances the cursor, does not return the character
-func (c *Compiler) Advance() {
-   c.Reader.ReadByte()
+func (s *Scanner) Advance() {
+   s.Reader.ReadByte()
 }
 
 // Adds the character to the tokenBuffer
-func (c *Compiler) BufferChar(char byte) {
-   c.tokenBuffer.WriteByte(char)
+func (s *Scanner) BufferChar(char byte) {
+   s.tokenBuffer.WriteByte(char)
 }
 
 // Clears out the tokenBuffer
-func (c *Compiler) ClearBuffer() {
-   c.tokenBuffer.Reset()
+func (s *Scanner) ClearBuffer() {
+   s.tokenBuffer.Reset()
 }
 
 // Determines if the tokenBuffer is a keyword or an Id
-func (c *Compiler) CheckReserved() Token {
+func (s *Scanner) CheckReserved() Token {
    // define a dictionary of the value in the buffer to Tokens
    dictionary := map[string]Token {
       "BEGIN": BeginSym,
@@ -145,7 +162,7 @@ func (c *Compiler) CheckReserved() Token {
       "WRITE": WriteSym,
    }
 
-   buf := c.tokenBuffer.String()
+   buf := s.tokenBuffer.String()
    if value, exists := dictionary[buf]; exists {
       return value
    } else {
@@ -154,13 +171,13 @@ func (c *Compiler) CheckReserved() Token {
 }
 
 // Will return true if its the end of file, false if not
-func (c *Compiler) Eof() bool {
-   if _, err := c.Reader.ReadByte(); err == io.EOF {
-      c.Reader.UnreadByte();
+func (s *Scanner) Eof() bool {
+   if _, err := s.Reader.ReadByte(); err == io.EOF {
+      s.Reader.UnreadByte();
 
       return true
    } else {
-      c.Reader.UnreadByte();
+      s.Reader.UnreadByte();
 
       return false
    }

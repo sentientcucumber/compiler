@@ -1,0 +1,151 @@
+% Created 2014-09-01 Mon 22:35
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\usepackage{paralist}
+\let\itemize\compactitem
+\author{Michael Hunsinger}
+\date{\today}
+\title{Assignment 1}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 24.3.1 (Org mode 8.2.7c)}}
+\begin{document}
+
+\maketitle
+This file contains all documentation for both parts of the first homework
+assignment. The first section contains all information pertaining to
+setting up and running the scanner operation on a file. The second section
+contains all information pertaining to definitions for the extended Micro
+language.
+
+\section{Scanner Documentation}
+\label{sec-1}
+This implentation of the scanner uses Google's new language Go. There are
+instructions on how to setup Go, a description of the file structure, and
+how to compile and run the program.
+
+\subsection{Install Go}
+\label{sec-1-1}
+Download the appropriate installation from Google's Go website,
+\url{http://golang.org/doc/install}, there is additional documentation located
+on website as well.
+
+\subsection{Go's Workspace}
+\label{sec-1-2}
+Extract files from the tarball into the desired location. Inside the root
+folder you will find four directories
+\begin{itemize}
+\item \texttt{bin} compiled executables, along with sample micro program files
+\item \texttt{doc} documentation
+\item \texttt{pkg} package objects (the compiler package is located in here)
+\item \texttt{src} source files
+\begin{itemize}
+\item \texttt{compiler} source files pertaining to the compiler package
+\item \texttt{main} source files pertaining to the main package (the driver file)
+\end{itemize}
+\end{itemize}
+
+We must also setup the \texttt{GOPATH} to ensure proper compilation of the files.
+Follow the steps below to set \texttt{GOPATH} in a *unix environment. 
+\begin{verbatim}
+$ cd ../01
+$ export GOPATH=$HOME/your/path/here/01
+\end{verbatim}
+
+\subsection{Compiling Source Files}
+\label{sec-1-3}
+There are two steps to compile and the executable; building the compiler
+package and then build the executable.
+\begin{verbatim}
+$ cd ../01
+$ go build compiler
+$ go install main
+\end{verbatim}
+Now there is an executable in the \texttt{bin} folder.
+
+\subsection{Running the Program}
+\label{sec-1-4}
+You can run the executable that was compiled. Ensure you are in the 
+directory where the \texttt{sample.micro} file is located.
+\begin{verbatim}
+$ cd ../01/bin
+$ ./main
+\end{verbatim}
+
+This will run scan the \texttt{sample.micro} file. There is also a \texttt{sample2.micro}
+file in the \texttt{bin} folder that uses some of the tokens found in the 
+extended Micro language. If you wish to scan this file, you will need to
+change file name in \texttt{../src/main/main.go} on line 18.
+
+\subsection{Sample Input and Output}
+\label{sec-1-5}
+Input file \texttt{sample.micro}
+\begin{verbatim}
+BEGIN --SOMETHING UNUSUAL
+   READ(A1, New_A, D, B);
+   C:= A1 +(New_A - D) - 75;
+   New_C:=((B - (7) + (C + D))) - (3 - A1); -- STUPID FORMULA
+   WRITE(C, A1 + New_C);
+   -- WHAT ABOUT := B + D;
+END
+\end{verbatim}
+Output from \texttt{sample.micro}
+\begin{verbatim}
+BeginSym ReadSym LParen Id Comma Id Comma Id Comma Id RParen SemiColon Id 
+AssignOp Id PlusOp LParen Id MinusOp Id RParen MinusOp IntLiteral SemiColon
+Id AssignOp LParen LParen Id MinusOp LParen IntLiteral RParen PlusOp LParen
+Id PlusOp Id RParen RParen RParen MinusOp LParen IntLiteral MinusOp Id RParen
+SemiColon WriteSym LParen Id Comma Id PlusOp Id RParen SemiColon EndSym
+\end{verbatim}
+
+
+\section{Extended Micro Grammer}
+\label{sec-2}
+Write an extended Micro Grammer to include the equality and exponentiation
+operators. The following grammers are meant to supplement the existing 
+grammer explained in class.\newline
+We will need the following definitions that were already defined in class.
+\begin{verbatim}
+<expression> -> <primary> | <primary> <add op> <expression>
+<primary>    -> LParen <expression> RParen
+<primary>    -> Id
+<primary>    -> IntLiteral
+<add op>     -> PlusOp | MinusOp
+\end{verbatim}
+
+\subsection{Exponential}
+\label{sec-2-1}
+The exponentiation should have higher precedence than \texttt{PlusOp} and 
+\texttt{MinusOp} and should group from right to left, that is, 
+\texttt{A**B**C = A**(B**C)}.
+\begin{verbatim}
+<expression> -> <primary> | <primary> <exponent> LParen <expression> RParen
+<exponent>   -> ExpOp
+\end{verbatim}
+
+\subsection{Equality}
+\label{sec-2-2}
+The equality operator should have lower precednce than plus and minus,
+and should not group, that is, \texttt{(A = B = C)} is not allowed.
+\begin{verbatim}
+<bool expression> -> <expression> <bool> <expression>
+<bool>            -> EqualityOp
+\end{verbatim}
+% Emacs 24.3.1 (Org mode 8.2.7c)
+\end{document}
