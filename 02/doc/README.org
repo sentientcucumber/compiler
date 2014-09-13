@@ -1,14 +1,14 @@
-#+TITLE: Assignment 1
+#+TITLE: Assignment 2
 #+AUTHOR: Michael Hunsinger
 #+OPTIONS: toc:nil
 #+LATEX_CLASS: article
 #+LaTeX_CLASS_OPTIONS: [a4paper]
 #+LaTeX_HEADER: \usepackage{titling}
-#+LaTeX_HEADER: \addtolength{\topmargin}{-1.375in}
-#+LaTeX_HEADER: \addtolength{\textheight}{1.75in}
-#+LaTeX_HEADER: \addtolength{\oddsidemargin}{-.375in}
-#+LaTeX_HEADER: \addtolength{\evensidemargin}{-.875in}
-#+LaTeX_HEADER: \addtolength{\textwidth}{0.75in}
+#+LaTeX_HEADER: \addtolength{\topmargin}{-0.75in}
+#+LaTeX_HEADER: \addtolength{\textheight}{1.25in}
+#+LaTeX_HEADER: \addtolength{\oddsidemargin}{-.75in}
+#+LaTeX_HEADER: \addtolength{\evensidemargin}{-.75in}
+#+LaTeX_HEADER: \addtolength{\textwidth}{1.75in}
 #+LaTeX_HEADER: \usepackage{paralist}
 #+LaTeX_HEADER: \let\itemize\compactitem
 #+LaTeX_HEADER: \let\description\compactdesc
@@ -72,41 +72,29 @@ how to compile and run the program.
    change file name in ~../src/main/main.go~ on line 18.
 
 * Sample Input and Output
+  There are still some existing issues when outputting larger files (sample2.micro) for instance
+  doesn't print quite right.
+
   #+BEGIN_SRC 
   sample.micro input
   BEGIN A := B + (72 - C); END
 
   sample.micro output
-  Parsing system goal
-  Parsing program
-  Legal token: BeginSym, passed token: BeginSym
-  Parsing statement list
-  Parsing statement
-  Parsing Ident
-  Legal token: Id, passed token: Id
-  Legal token: AssignOp, passed token: AssignOp
-  Parsing Expression
-  Parsing Primary
-  Parsing Ident
-  Legal token: Id, passed token: Id
-  Parsing AddOp
-  Legal token: PlusOp, passed token: PlusOp
-  Parsing Expression
-  Parsing Primary
-  Legal token: LParen, passed token: LParen
-  Parsing Expression
-  Parsing Primary
-  Legal token: IntLiteral, passed token: IntLiteral
-  Parsing AddOp
-  Legal token: MinusOp, passed token: MinusOp
-  Parsing Expression
-  Parsing Primary
-  Parsing Ident
-  Legal token: Id, passed token: Id
-  Legal token: RParen, passed token: RParen
-  Legal token: SemiColon, passed token: SemiColon
-  Legal token: EndSym, passed token: EndSym
+  <system goal> --> BeginSym <program> EndSym EofSym
+  <system goal> --> BeginSym <statement list> EndSym EofSym
+  <system goal> --> BeginSym <statement> EndSym EofSym  ahead  AssignOp
+  <system goal> --> BeginSym <ident> := <expression> ; EndSym EofSym
+  <system goal> --> BeginSym Id := <expression> ; EndSym EofSym
+  <system goal> --> BeginSym Id := <primary> <add op> <expression> ; EndSym EofSym
+  <system goal> --> BeginSym Id := <ident> <add op> <expression> ; EndSym EofSym
+  <system goal> --> BeginSym Id := Id <add op> <expression> ; EndSym EofSym
+  <system goal> --> BeginSym Id := Id PlusOp <expression> ; EndSym EofSym
+  <system goal> --> BeginSym Id := Id PlusOp <primary> ; EndSym EofSym
+  <system goal> --> BeginSym Id := Id PlusOp ( <expression> ) ; EndSym EofSym
+  <system goal> --> BeginSym Id := Id PlusOp ( <primary> <add op> <expression> ) ; EndSym EofSym
+  <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral <add op> <expression> ) ; EndSym EofSym
+  <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <expression> ) ; EndSym EofSym
+  <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <primary> ) ; EndSym EofSym
+  <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <ident> ) ; EndSym EofSym
+  <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp Id ) ; EndSym EofSym
   #+END_SRC
-  
-  
-  

@@ -80,7 +80,6 @@ how to compile and run the program.
    SemiColon WriteSym LParen Id Comma Id PlusOp Id RParen SemiColon EndSym
    #+END_SRC
 
-
 * Extended Micro Grammer
   Write an extended Micro Grammer to include the equality and exponentiation
   operators. The following grammers are meant to supplement the existing 
@@ -99,8 +98,10 @@ how to compile and run the program.
    =MinusOp= and should group from right to left, that is, 
    =A**B**C = A**(B**C)=.
    #+BEGIN_SRC
-   <expression> -> <primary> | <primary> <exponent> LParen <expression> RParen
-   <exponent>   -> ExpOp
+   <expression> -> <term> | <expression> PlusOp <term> | 
+                   <expression> MinusOp <term>
+   <term>       -> <factor> | <term> ExpOp <factor>
+   <factor>     -> Id | IntLiteral
    #+END_SRC
 
 ** Equality

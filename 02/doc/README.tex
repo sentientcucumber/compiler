@@ -1,4 +1,4 @@
-% Created 2014-09-07 Sun 23:01
+% Created 2014-09-13 Sat 00:00
 \documentclass[a4paper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -17,18 +17,18 @@
 \usepackage{hyperref}
 \tolerance=1000
 \usepackage{titling}
-\addtolength{\topmargin}{-1.375in}
-\addtolength{\textheight}{1.75in}
-\addtolength{\oddsidemargin}{-.375in}
-\addtolength{\evensidemargin}{-.875in}
-\addtolength{\textwidth}{0.75in}
+\addtolength{\topmargin}{-0.75in}
+\addtolength{\textheight}{1.25in}
+\addtolength{\oddsidemargin}{-.75in}
+\addtolength{\evensidemargin}{-.75in}
+\addtolength{\textwidth}{1.75in}
 \usepackage{paralist}
 \let\itemize\compactitem
 \let\description\compactdesc
 \let\enumerate\compactenum
 \author{Michael Hunsinger}
 \date{\today}
-\title{Assignment 1}
+\title{Assignment 2}
 \hypersetup{
   pdfkeywords={},
   pdfsubject={},
@@ -106,92 +106,33 @@ file in the \verb~bin~ folder that uses some of the tokens found in the
 extended Micro language. If you wish to scan this file, you will need to
 change file name in \verb~../src/main/main.go~ on line 18.
 
-\section{Sample output}
+\section{Sample Input and Output}
 \label{sec-3}
+There are still some existing issues when outputting larger files (sample2.micro) for instance
+doesn't print quite right. 
+
 \begin{verbatim}
 sample.micro input
-BEGIN --SOMETHING UNUSUAL
-   READ(A1, New_A, D, B);
-   C:= A1 +(New_A - D) - 75;
-   New_C:=((B - (7) + (C + D))) - (3 - A1); -- STUPID FORMULA
-   WRITE(C, A1 + New_C);
-   -- WHAT ABOUT := B + D;
-END
-
-sample.micro output
-Legal token: BeginSym, passed token: BeginSym
-Legal token: ReadSym, passed token: ReadSym
-Legal token: LParen, passed token: LParen
-Legal token: Id, passed token: Id
-Legal token: Comma, passed token: Comma
-Legal token: Id, passed token: Id
-Legal token: Comma, passed token: Comma
-Legal token: Id, passed token: Id
-Legal token: Comma, passed token: Comma
-Legal token: Id, passed token: Id
-Legal token: RParen, passed token: RParen
-Legal token: SemiColon, passed token: SemiColon
-Legal token: Id, passed token: Id
-Legal token: AssignOp, passed token: AssignOp
-Legal token: Id, passed token: Id
-Legal token: PlusOp, passed token: PlusOp
-Legal token: LParen, passed token: LParen
-Legal token: Id, passed token: Id
-Legal token: MinusOp, passed token: MinusOp
-Legal token: Id, passed token: Id
-Legal token: RParen, passed token: RParen
-Legal token: MinusOp, passed token: MinusOp
-Legal token: IntLiteral, passed token: IntLiteral
-Legal token: SemiColon, passed token: SemiColon
-Legal token: Id, passed token: Id
-Legal token: AssignOp, passed token: AssignOp
-Legal token: LParen, passed token: LParen
-Legal token: LParen, passed token: LParen
-Legal token: Id, passed token: Id
-Legal token: MinusOp, passed token: MinusOp
-Legal token: LParen, passed token: LParen
-Legal token: IntLiteral, passed token: IntLiteral
-Legal token: RParen, passed token: RParen
-Legal token: PlusOp, passed token: PlusOp
-Legal token: LParen, passed token: LParen
-Legal token: Id, passed token: Id
-Legal token: PlusOp, passed token: PlusOp
-Legal token: Id, passed token: Id
-Legal token: RParen, passed token: RParen
-Legal token: RParen, passed token: RParen
-Legal token: RParen, passed token: RParen
-Legal token: MinusOp, passed token: MinusOp
-Legal token: LParen, passed token: LParen
-Legal token: IntLiteral, passed token: IntLiteral
-Legal token: MinusOp, passed token: MinusOp
-Legal token: Id, passed token: Id
-Legal token: RParen, passed token: RParen
-Legal token: SemiColon, passed token: SemiColon
-Legal token: WriteSym, passed token: WriteSym
-Legal token: LParen, passed token: LParen
-Legal token: Id, passed token: Id
-Legal token: Comma, passed token: Comma
-Legal token: Id, passed token: Id
-Legal token: PlusOp, passed token: PlusOp
-Legal token: Id, passed token: Id
-Legal token: RParen, passed token: RParen
-
-sample2.micro input
 BEGIN A := B + (72 - C); END
 
-sample2.micro output
-Legal token: BeginSym, passed token: BeginSym
-Legal token: Id, passed token: Id
-Legal token: AssignOp, passed token: AssignOp
-Legal token: Id, passed token: Id
-Legal token: PlusOp, passed token: PlusOp
-Legal token: LParen, passed token: LParen
-Legal token: IntLiteral, passed token: IntLiteral
-Legal token: MinusOp, passed token: MinusOp
-Legal token: Id, passed token: Id
-Legal token: RParen, passed token: RParen
-Legal token: SemiColon, passed token: SemiColon
-Legal token: EndSym, passed token: EndSym
+sample.micro output
+<system goal> --> BeginSym <program> EndSym EofSym
+<system goal> --> BeginSym <statement list> EndSym EofSym
+<system goal> --> BeginSym <statement> EndSym EofSym  ahead  AssignOp
+<system goal> --> BeginSym <ident> := <expression> ; EndSym EofSym
+<system goal> --> BeginSym Id := <expression> ; EndSym EofSym
+<system goal> --> BeginSym Id := <primary> <add op> <expression> ; EndSym EofSym
+<system goal> --> BeginSym Id := <ident> <add op> <expression> ; EndSym EofSym
+<system goal> --> BeginSym Id := Id <add op> <expression> ; EndSym EofSym
+<system goal> --> BeginSym Id := Id PlusOp <expression> ; EndSym EofSym
+<system goal> --> BeginSym Id := Id PlusOp <primary> ; EndSym EofSym
+<system goal> --> BeginSym Id := Id PlusOp ( <expression> ) ; EndSym EofSym
+<system goal> --> BeginSym Id := Id PlusOp ( <primary> <add op> <expression> ) ; EndSym EofSym
+<system goal> --> BeginSym Id := Id PlusOp ( IntLiteral <add op> <expression> ) ; EndSym EofSym
+<system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <expression> ) ; EndSym EofSym
+<system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <primary> ) ; EndSym EofSym
+<system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <ident> ) ; EndSym EofSym
+<system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp Id ) ; EndSym EofSym
 \end{verbatim}
 % Emacs 24.3.1 (Org mode 8.2.7c)
 \end{document}

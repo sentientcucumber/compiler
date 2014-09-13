@@ -1,4 +1,4 @@
-% Created 2014-09-01 Mon 22:35
+% Created 2014-09-11 Thu 22:33
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -114,7 +114,6 @@ Id PlusOp Id RParen RParen RParen MinusOp LParen IntLiteral MinusOp Id RParen
 SemiColon WriteSym LParen Id Comma Id PlusOp Id RParen SemiColon EndSym
 \end{verbatim}
 
-
 \section{Extended Micro Grammer}
 \label{sec-2}
 Write an extended Micro Grammer to include the equality and exponentiation
@@ -135,8 +134,10 @@ The exponentiation should have higher precedence than \texttt{PlusOp} and
 \texttt{MinusOp} and should group from right to left, that is, 
 \texttt{A**B**C = A**(B**C)}.
 \begin{verbatim}
-<expression> -> <primary> | <primary> <exponent> LParen <expression> RParen
-<exponent>   -> ExpOp
+<expression> -> <term> | <expression> PlusOp <term> | 
+                <expression> MinusOp <term>
+<term>       -> <factor> | <term> ExpOp <factor>
+<factor>     -> Id | IntLiteral
 \end{verbatim}
 
 \subsection{Equality}

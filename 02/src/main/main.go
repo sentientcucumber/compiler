@@ -7,18 +7,18 @@
 package main
 
 import (
-   "compiler"
-   "os"
-   "bytes"
-   "io/ioutil"
+	"bytes"
+	"compiler"
+	"io/ioutil"
+	"os"
 )
 
 func main() {
-   // create a new reader and initialze a parser with it
-   buf, _ := ioutil.ReadFile(os.Args[1])
-   reader := bytes.NewReader(buf)
+	// create a new reader and initialze a parser with it
+	buf, _ := ioutil.ReadFile(os.Args[1])
+	reader := bytes.NewReader(buf)
 
-   p := new (compiler.Parser)
-   p.Scanner = compiler.Scanner { Reader: *reader }
-   p.SystemGoal()
+	p := new(compiler.Parser)
+	p.Scanner = compiler.Scanner{Reader: *reader}
+	p.SystemGoal()
 }
