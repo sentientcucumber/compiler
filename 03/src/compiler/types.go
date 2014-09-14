@@ -55,3 +55,20 @@ type ExprRec struct {
    Name string
    Val  int
 }
+
+func NewExprRec(ek ExprKind) *ExprRec {
+   er := new(ExprRec)
+
+   switch ek {
+   case IdExpr:
+   case TempExpr:
+      er.Name = "String"
+      break
+   case LiteralExpr:
+      er.Val = 123
+      break
+   }
+
+   return er
+}
+

@@ -14,22 +14,31 @@ import (
 )
 
 type Parser struct {
+   // utilities to read code and write generated code
 	Scanner   Scanner
    Writer    bufio.Writer
+
+   // used to print out the current parsed state
 	currState string
-   maxSymbol int
-   maxTemp   int
-   symbolTable []string
+
+   // symbol table variables
+   maxSymbol  int
+   maxTemp    int
+   lastSymbol int
+   SymbolTable []string
+
+   // keeps track of the curent token being parsed
+   currentToken Token
 }
 
 // Function matches a the legal, expected token (according to the grammar) to
 // the token read in the file, throw an error if not
 func (p *Parser) Match(legalTok Token) {
-	currTok := p.Scanner.Scan()
+	p.currentToken = p.Scanner.Scan()
 
-	if currTok != legalTok {
+	if p.currentToken != legalTok {
 		panic(fmt.Errorf("Syntax error when reading %v, doesn't match %v",
-			currTok, legalTok))
+			p.currentToken, legalTok))
 	}
 }
 
@@ -131,9 +140,9 @@ func (p *Parser) Statement() {
 
       var identifier, expr ExprRec
 
-		p.Ident(identifier)
+		p.Ident(&identifier)
 		p.Match(AssignOp)
-		p.Expression(expr)
+		p.Expression(&expr)
       p.Assign(identifier, expr)
 		p.Match(SemiColon)
 		break
@@ -179,7 +188,7 @@ func (p *Parser) IdList() {
 
    var identifier ExprRec
 
-	p.Ident(identifier)
+	p.Ident(&identifier)
    p.ReadId(identifier)
 
 	if next := p.NextToken(); next == Comma {
@@ -200,19 +209,17 @@ func (p *Parser) ExprList() {
 	}
    var expr ExprRec
 
-	p.Expression(expr)
+	p.Expression(&expr)
    p.WriteId(expr)
 
 	if next := p.NextToken(); next == Comma {
 		p.Match(Comma)
 		p.ExprList()
 	}
-
-	fmt.Printf("\n")
 }
 
 // Expression definition according to grammar
-func (p *Parser) Expression(result ExprRec) {
+func (p *Parser) Expression(result *ExprRec) {
 
 	// some issues here when expression is contained in parens
 	if ahead := p.ReadNTokensAhead(2); ahead == PlusOp || ahead == MinusOp {
@@ -226,20 +233,20 @@ func (p *Parser) Expression(result ExprRec) {
    var leftOperand, rightOperand ExprRec
    var op OpRec
 
-	p.Primary(leftOperand)
+	p.Primary(&leftOperand)
 	next := p.NextToken()
 
 	if next == PlusOp || next == MinusOp {
-		p.AddOp(op)
-		p.Expression(rightOperand)
-      result = p.GenInfix(leftOperand, op, rightOperand)
+		p.AddOp(&op)
+		p.Expression(&rightOperand)
+      *result = p.GenInfix(leftOperand, op, rightOperand)
 	} else {
-      result = leftOperand
+      *result = leftOperand
    }
 }
 
 // Primary definition according to grammar
-func (p *Parser) Primary(result ExprRec) {
+func (p *Parser) Primary(result *ExprRec) {
 
 	next := p.NextToken()
 
@@ -275,7 +282,7 @@ func (p *Parser) Primary(result ExprRec) {
 }
 
 // Identifier definition according to grammar
-func (p *Parser) Ident(result ExprRec) {
+func (p *Parser) Ident(result *ExprRec) {
 
 	p.currState = strings.Replace(p.currState, "<ident>", "Id", 1)
 	fmt.Println(p.currState)
@@ -285,7 +292,7 @@ func (p *Parser) Ident(result ExprRec) {
 }
 
 // AddOp definition according to grammar
-func (p *Parser) AddOp(op OpRec) {
+func (p *Parser) AddOp(op *OpRec) {
 
 	next := p.NextToken()
 
@@ -315,8 +322,10 @@ func (p *Parser) AddOp(op OpRec) {
 // Initializes the maxSymbol and maxTemp variables
 // These are used for the symbol table and temp variabl assignment
 func (p *Parser) Start() {
-   p.symbolTable = make([]string, 10)
-   p.maxTemp   = 0
+   p.maxSymbol   = 100
+   p.lastSymbol  = 0
+   p.maxTemp     = 0
+   p.SymbolTable = make([]string, p.maxSymbol)
 }
 
 // Write the snippet of code to store the variable
@@ -344,24 +353,24 @@ func (p *Parser) GenInfix(e1 ExprRec, op OpRec, e2 ExprRec) ExprRec {
 }
 
 // TODO placeholder for process id function
-func (p *Parser) ProcessId(er ExprRec) {
+func (p *Parser) ProcessId(er *ExprRec) {
    p.CheckId(p.Scanner.tokenBuffer.String())
    er.Kind = IdExpr
    er.Name = p.Scanner.tokenBuffer.String()
 }
 
 // TODO placeholder for process literal function
-func (p *Parser) ProcessLiteral(er ExprRec) {
+func (p *Parser) ProcessLiteral(er *ExprRec) {
    er.Kind = LiteralExpr
    er.Val, _ = strconv.Atoi(p.Scanner.tokenBuffer.String())
 }
 
 // TODO placeholder for process op function
-func (p *Parser) ProcessOp(o OpRec) {
-   
+func (p *Parser) ProcessOp(o *OpRec) {
+   o.Op = p.currentToken
 }
 
-// TODO placeholder for finish function
+// generates the halt function
 func (p *Parser) Finish() {
    p.Generate("HALT")
 }
@@ -394,21 +403,22 @@ func (p *Parser) Extract(er ExprRec) (val string) {
 
    switch kind {
    case IdExpr:
+      val = er.Name
+      break
    case TempExpr:
       val = er.Name
       break
    case LiteralExpr:
       val = strconv.Itoa(er.Val)
       break
-   // default:
-	// 	panic(fmt.Errorf("Trouble extracting the ExprRec %v\n", kind))
    }
 
    return 
 }
 
-// TODO placeholder for extract op function
+// Determine's the type of operation
 func (p *Parser) ExtractOp(o OpRec) string {
+
    if o.Op == PlusOp {
       return "ADD"
    } else {
@@ -417,19 +427,18 @@ func (p *Parser) ExtractOp(o OpRec) string {
 }
 
 // Checks to see if the symbol already exists
-func (p *Parser) LookUp(s string) (found bool) {
+func (p *Parser) LookUp(s string) bool {
 
-   found = false
-   for _, sym := range p.symbolTable {
+   for _, sym := range p.SymbolTable {
       if sym == s {
-         found = true
+         return true
       }
    }
 
-   return
+   return false
 }
 
-// TODO placeholder for check id function
+// Checks to see if the Id being passed is in the symbol table
 func (p *Parser) CheckId(s string) {
 
    if !p.LookUp(s) {
@@ -438,16 +447,19 @@ func (p *Parser) CheckId(s string) {
    }
 }
 
-// TODO placeholder for enter function
+// Enters the symbol into the symbol table, so long as there's room
 func (p *Parser) Enter(s string) {
 
-   if len(p.symbolTable) < p.maxSymbol {
-      p.symbolTable[len(p.symbolTable) - 1] = s
+   if p.lastSymbol < p.maxSymbol {
+      p.SymbolTable[p.lastSymbol] = s
+      p.lastSymbol++
+   } else {
+      panic(fmt.Errorf("Symbol table overflow"))
    }
 }
 
-// TODO placeholder for get temp function
-func (p *Parser) GetTemp() (tempName string) {
+// Returns the current Temp name
+func (p *Parser) GetTemp() string {
 
    p.maxTemp++
 
@@ -457,5 +469,5 @@ func (p *Parser) GetTemp() (tempName string) {
 
    p.CheckId(buf.String())
    
-   return
+   return buf.String()
 }
