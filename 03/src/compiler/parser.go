@@ -86,6 +86,7 @@ func (p *Parser) SystemGoal() {
 	fmt.Println(p.currState)
 
 	p.Program()
+   p.Finish()
 }
 
 // Program definition according to grammar
@@ -94,6 +95,7 @@ func (p *Parser) Program() {
 	p.currState = strings.Replace(p.currState, "<program>", "<statement list>", 1)
 	fmt.Println(p.currState)
 
+   p.Start()
 	p.Match(BeginSym)
 	p.StatementList()
 	p.Match(EndSym)
@@ -127,9 +129,12 @@ func (p *Parser) Statement() {
 		p.currState = strings.Replace(p.currState, "<statement>", "<ident> := <expression> ;", 1)
 		fmt.Println(p.currState)
 
-		p.Ident()
+      var identifier, expr ExprRec
+
+		p.Ident(identifier)
 		p.Match(AssignOp)
-		p.Expression()
+		p.Expression(expr)
+      p.Assign(identifier, expr)
 		p.Match(SemiColon)
 		break
 
@@ -172,7 +177,10 @@ func (p *Parser) IdList() {
 		fmt.Println(p.currState)
 	}
 
-	p.Ident()
+   var identifier ExprRec
+
+	p.Ident(identifier)
+   p.ReadId(identifier)
 
 	if next := p.NextToken(); next == Comma {
 		p.Match(Comma)
@@ -190,8 +198,10 @@ func (p *Parser) ExprList() {
 		p.currState = strings.Replace(p.currState, "<expr list>", "<expression>", 1)
 		fmt.Println(p.currState)
 	}
+   var expr ExprRec
 
-	p.Expression()
+	p.Expression(expr)
+   p.WriteId(expr)
 
 	if next := p.NextToken(); next == Comma {
 		p.Match(Comma)
@@ -202,7 +212,7 @@ func (p *Parser) ExprList() {
 }
 
 // Expression definition according to grammar
-func (p *Parser) Expression() {
+func (p *Parser) Expression(result ExprRec) {
 
 	// some issues here when expression is contained in parens
 	if ahead := p.ReadNTokensAhead(2); ahead == PlusOp || ahead == MinusOp {
@@ -213,17 +223,23 @@ func (p *Parser) Expression() {
 		fmt.Println(p.currState)
 	}
 
-	p.Primary()
+   var leftOperand, rightOperand ExprRec
+   var op OpRec
+
+	p.Primary(leftOperand)
 	next := p.NextToken()
 
 	if next == PlusOp || next == MinusOp {
-		p.AddOp()
-		p.Expression()
-	}
+		p.AddOp(op)
+		p.Expression(rightOperand)
+      result = p.GenInfix(leftOperand, op, rightOperand)
+	} else {
+      result = leftOperand
+   }
 }
 
 // Primary definition according to grammar
-func (p *Parser) Primary() {
+func (p *Parser) Primary(result ExprRec) {
 
 	next := p.NextToken()
 
@@ -233,7 +249,7 @@ func (p *Parser) Primary() {
 		fmt.Println(p.currState)
 
 		p.Match(LParen)
-		p.Expression()
+		p.Expression(result)
 		p.Match(RParen)
 		break
 
@@ -241,7 +257,7 @@ func (p *Parser) Primary() {
 		p.currState = strings.Replace(p.currState, "<primary>", "<ident>", 1)
 		fmt.Println(p.currState)
 
-		p.Ident()
+		p.Ident(result)
 		break
 
 	case IntLiteral:
@@ -249,6 +265,7 @@ func (p *Parser) Primary() {
 		fmt.Println(p.currState)
 
 		p.Match(IntLiteral)
+      p.ProcessLiteral(result)
 		break
 
 	default:
@@ -258,16 +275,17 @@ func (p *Parser) Primary() {
 }
 
 // Identifier definition according to grammar
-func (p *Parser) Ident() {
+func (p *Parser) Ident(result ExprRec) {
 
 	p.currState = strings.Replace(p.currState, "<ident>", "Id", 1)
 	fmt.Println(p.currState)
 
 	p.Match(Id)
+   p.ProcessId(result)
 }
 
 // AddOp definition according to grammar
-func (p *Parser) AddOp() {
+func (p *Parser) AddOp(op OpRec) {
 
 	next := p.NextToken()
 
@@ -277,6 +295,7 @@ func (p *Parser) AddOp() {
 		fmt.Println(p.currState)
 
 		p.Match(PlusOp)
+      p.ProcessOp(op)
 		break
 
 	case MinusOp:
@@ -284,6 +303,7 @@ func (p *Parser) AddOp() {
 		fmt.Println(p.currState)
 
 		p.Match(MinusOp)
+      p.ProcessOp(op)
 		break
 
 	default:
@@ -315,9 +335,12 @@ func (p *Parser) WriteId(out ExprRec) {
 }
 
 // TODO placeholder for gen infix function
-func (p *Parser) GenInfix(e1, e2 ExprRec, op OpRec) {
+func (p *Parser) GenInfix(e1 ExprRec, op OpRec, e2 ExprRec) ExprRec {
    er := ExprRec { Kind: TempExpr }
    er.Name = p.GetTemp()
+   p.Generate(p.ExtractOp(op), p.Extract(e1), p.Extract(e2), er.Name)
+
+   return er
 }
 
 // TODO placeholder for process id function
@@ -335,7 +358,7 @@ func (p *Parser) ProcessLiteral(er ExprRec) {
 
 // TODO placeholder for process op function
 func (p *Parser) ProcessOp(o OpRec) {
-
+   
 }
 
 // TODO placeholder for finish function
@@ -351,7 +374,7 @@ func (p *Parser) Generate(strs ...string) {
    for i, s := range strs {
       buf.WriteString(s)
 
-      if i == 0 {
+      if i == 0 && len(strs) > 1 {
          buf.WriteString(" ")
       } else if i < len(strs) - 1 {
          buf.WriteString(", ")
@@ -377,16 +400,20 @@ func (p *Parser) Extract(er ExprRec) (val string) {
    case LiteralExpr:
       val = strconv.Itoa(er.Val)
       break
-   default:
-		panic(fmt.Errorf("Trouble extracting the ExprRec %v\n", kind))
+   // default:
+	// 	panic(fmt.Errorf("Trouble extracting the ExprRec %v\n", kind))
    }
 
    return 
 }
 
 // TODO placeholder for extract op function
-func (p *Parser) ExtractOp() {
-
+func (p *Parser) ExtractOp(o OpRec) string {
+   if o.Op == PlusOp {
+      return "ADD"
+   } else {
+      return "SUB"
+   }
 }
 
 // Checks to see if the symbol already exists

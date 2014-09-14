@@ -46,7 +46,7 @@ type ExprKind string
 
 // OpRec type
 type OpRec struct {
-   Op Operator
+   Op Token
 }
 
 // ExprRec type
