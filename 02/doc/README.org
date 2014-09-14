@@ -45,15 +45,15 @@ how to compile and run the program.
    We must also setup the ~GOPATH~ to ensure proper compilation of the files.
    Follow the steps below to set ~GOPATH~ in a *unix environment. 
    #+BEGIN_SRC 
-   $ cd ../01
-   $ export GOPATH=$HOME/your/path/here/01
+   $ cd ../02
+   $ export GOPATH=$HOME/your/path/here/02
    #+END_SRC
    
 ** Compiling Source Files
    There are two steps to compile and the executable; building the compiler
    package and then build the executable.
    #+BEGIN_SRC 
-   $ cd ../01
+   $ cd ../02
    $ go build compiler
    $ go install main
    #+END_SRC
@@ -68,8 +68,7 @@ how to compile and run the program.
    #+END_SRC
    This will run scan the ~sample.micro~ file. There is also a ~sample2.micro~
    file in the ~bin~ folder that uses some of the tokens found in the 
-   extended Micro language. If you wish to scan this file, you will need to
-   change file name in ~../src/main/main.go~ on line 18.
+   extended Micro language. 
 
 * Sample Input and Output
   There are still some existing issues when outputting larger files (sample2.micro) for instance

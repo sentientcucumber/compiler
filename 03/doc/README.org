@@ -15,12 +15,21 @@
 #+LaTeX_HEADER: \let\enumerate\compactenum
 
 * Change log
-  - Changed the Reader from the bufio package to the bytes package. The
-    bufio Reader is made to read streaming data and cannot perform seeks.
-  - Changed ~compiler.go~ to a ~scanner.go~, so it is more appropriately
-    named for future implementations.
-  - Added a ~parser.go~ file to implement a compiler's parser functionality.
-  - Added the ability to pass in the file on the command line.
+** [2014-09-08 Mon]
+   - Changed the Reader from the bufio package to the bytes package. The
+     bufio Reader is made to read streaming data and cannot perform seeks.
+   - Changed ~compiler.go~ to a ~scanner.go~, so it is more appropriately
+     named for future implementations.
+   - Added a ~parser.go~ file to implement a compiler's parser functionality.
+   - Added the ability to pass in the file on the command line.
+** [2014-09-15 Mon]
+   - Moved ~token.go~ to ~types.go~ and added support for Operator, ExprRec,
+     and ExprKind.
+   - Added semantic routines to the parser.
+   - When running the program, the user must add a second parameter for the
+     output file. For example, ~./main simple.micro generatedOutput~ will
+     create a file ~generatedOutput~ with all the assembly operations generated
+     during parsing.
 
 * Go Documentation
 This implentation of the scanner uses Google's new language Go. There are
@@ -45,15 +54,15 @@ how to compile and run the program.
    We must also setup the ~GOPATH~ to ensure proper compilation of the files.
    Follow the steps below to set ~GOPATH~ in a *unix environment. 
    #+BEGIN_SRC 
-   $ cd ../01
-   $ export GOPATH=$HOME/your/path/here/01
+   $ cd ../03
+   $ export GOPATH=$HOME/your/path/here/03
    #+END_SRC
    
 ** Compiling Source Files
    There are two steps to compile and the executable; building the compiler
    package and then build the executable.
    #+BEGIN_SRC 
-   $ cd ../01
+   $ cd ../03
    $ go build compiler
    $ go install main
    #+END_SRC
@@ -63,21 +72,20 @@ how to compile and run the program.
    You can run the executable that was compiled. Ensure you are in the 
    directory where the ~sample.micro~ file is located.
    #+BEGIN_SRC 
-   $ cd ../02/bin
+   $ cd ../03/bin
    $ ./main sample.micro
    #+END_SRC
-   This will run scan the ~sample.micro~ file. There is also a ~sample2.micro~
+   This will run scan the ~simple.micro~ file. There is also a ~complex.micro~
    file in the ~bin~ folder that uses some of the tokens found in the 
-   extended Micro language. If you wish to scan this file, you will need to
-   change file name in ~../src/main/main.go~ on line 18.
+   extended Micro language.
 
 * Sample Input and Output
   There are still some existing issues when outputting larger files (sample2.micro) for instance
   doesn't print quite right.
 
   #+BEGIN_SRC 
-  sample.micro input
-  BEGIN A := B + (72 - C); END
+  simple.micro input
+  BEGIN A := BB + 314 + A; END EofSym
 
   sample.micro output
   <system goal> --> BeginSym <program> EndSym EofSym
@@ -97,4 +105,15 @@ how to compile and run the program.
   <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <primary> ) ; EndSym EofSym
   <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <ident> ) ; EndSym EofSym
   <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp Id ) ; EndSym EofSym
+
+  generated assembly output
+  DECLARE A, INTEGER
+  DECLARE BB, INTEGER
+  DECLARE Temp&1, INTEGER
+  ADD 314, A, Temp&1
+  DECLARE Temp&2, INTEGER
+  ADD BB, Temp&1, Temp&2
+  STORE Temp&2, A
+  HALT
+
   #+END_SRC
