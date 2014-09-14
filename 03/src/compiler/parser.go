@@ -8,11 +8,18 @@ package compiler
 import (
 	"fmt"
 	"strings"
+   "bufio"
+   "bytes"
+   "strconv"
 )
 
 type Parser struct {
 	Scanner   Scanner
+   Writer    bufio.Writer
 	currState string
+   maxSymbol int
+   maxTemp   int
+   symbolTable []string
 }
 
 // Function matches a the legal, expected token (according to the grammar) to
@@ -74,6 +81,7 @@ func (p *Parser) HasToken(token Token) (found bool, count int) {
 
 // SystemGoal definition according to grammar
 func (p *Parser) SystemGoal() {
+
 	p.currState = "<system goal> --> BeginSym <program> EndSym EofSym"
 	fmt.Println(p.currState)
 
@@ -82,6 +90,7 @@ func (p *Parser) SystemGoal() {
 
 // Program definition according to grammar
 func (p *Parser) Program() {
+
 	p.currState = strings.Replace(p.currState, "<program>", "<statement list>", 1)
 	fmt.Println(p.currState)
 
@@ -154,6 +163,7 @@ func (p *Parser) Statement() {
 
 // IdList definition according to grammar
 func (p *Parser) IdList() {
+
 	if ahead := p.ReadNTokensAhead(2); ahead == Comma {
 		p.currState = strings.Replace(p.currState, "<id list>", "<ident>, <id list>", 1)
 		fmt.Println(p.currState)
@@ -172,6 +182,7 @@ func (p *Parser) IdList() {
 
 // ExpressionList definition according to grammar
 func (p *Parser) ExprList() {
+
 	if ahead := p.ReadNTokensAhead(2); ahead == Comma {
 		p.currState = strings.Replace(p.currState, "<expr list>", "<expression>, <expr list>", 1)
 		fmt.Println(p.currState)
@@ -213,6 +224,7 @@ func (p *Parser) Expression() {
 
 // Primary definition according to grammar
 func (p *Parser) Primary() {
+
 	next := p.NextToken()
 
 	switch next {
@@ -247,6 +259,7 @@ func (p *Parser) Primary() {
 
 // Identifier definition according to grammar
 func (p *Parser) Ident() {
+
 	p.currState = strings.Replace(p.currState, "<ident>", "Id", 1)
 	fmt.Println(p.currState)
 
@@ -255,6 +268,7 @@ func (p *Parser) Ident() {
 
 // AddOp definition according to grammar
 func (p *Parser) AddOp() {
+
 	next := p.NextToken()
 
 	switch next {
@@ -276,4 +290,145 @@ func (p *Parser) AddOp() {
 		panic(fmt.Errorf("Syntax error when reading %v\n", next))
 		break
 	}
+}
+
+// Initializes the maxSymbol and maxTemp variables
+// These are used for the symbol table and temp variabl assignment
+func (p *Parser) Start() {
+   p.symbolTable = make([]string, 10)
+   p.maxTemp   = 0
+}
+
+// Write the snippet of code to store the variable
+func (p *Parser) Assign(target, src ExprRec) {
+   p.Generate("STORE", p.Extract(src), target.Name)
+}
+
+// Write the snippet of code to read the variable
+func (p *Parser) ReadId(in ExprRec) {
+   p.Generate("READ", in.Name, "INTEGER")
+}
+
+// Write the snippet of code to write the variable
+func (p *Parser) WriteId(out ExprRec) {
+   p.Generate("WRITE", p.Extract(out), "INTEGER")
+}
+
+// TODO placeholder for gen infix function
+func (p *Parser) GenInfix(e1, e2 ExprRec, op OpRec) {
+   er := ExprRec { Kind: TempExpr }
+   er.Name = p.GetTemp()
+}
+
+// TODO placeholder for process id function
+func (p *Parser) ProcessId(er ExprRec) {
+   p.CheckId(p.Scanner.tokenBuffer.String())
+   er.Kind = IdExpr
+   er.Name = p.Scanner.tokenBuffer.String()
+}
+
+// TODO placeholder for process literal function
+func (p *Parser) ProcessLiteral(er ExprRec) {
+   er.Kind = LiteralExpr
+   er.Val, _ = strconv.Atoi(p.Scanner.tokenBuffer.String())
+}
+
+// TODO placeholder for process op function
+func (p *Parser) ProcessOp(o OpRec) {
+
+}
+
+// TODO placeholder for finish function
+func (p *Parser) Finish() {
+   p.Generate("HALT")
+}
+
+// Used to do the actual writing of code
+func (p *Parser) Generate(strs ...string) {
+
+   var buf bytes.Buffer
+
+   for i, s := range strs {
+      buf.WriteString(s)
+
+      if i == 0 {
+         buf.WriteString(" ")
+      } else if i < len(strs) - 1 {
+         buf.WriteString(", ")
+      } else {
+         buf.WriteString("\n")
+      }
+   }
+
+   p.Writer.Write(buf.Bytes())
+   p.Writer.Flush()
+}
+
+// Extract various parts of the ExprRec
+func (p *Parser) Extract(er ExprRec) (val string) {
+
+   kind := er.Kind
+
+   switch kind {
+   case IdExpr:
+   case TempExpr:
+      val = er.Name
+      break
+   case LiteralExpr:
+      val = strconv.Itoa(er.Val)
+      break
+   default:
+		panic(fmt.Errorf("Trouble extracting the ExprRec %v\n", kind))
+   }
+
+   return 
+}
+
+// TODO placeholder for extract op function
+func (p *Parser) ExtractOp() {
+
+}
+
+// Checks to see if the symbol already exists
+func (p *Parser) LookUp(s string) (found bool) {
+
+   found = false
+   for _, sym := range p.symbolTable {
+      if sym == s {
+         found = true
+      }
+   }
+
+   return
+}
+
+// TODO placeholder for check id function
+func (p *Parser) CheckId(s string) {
+
+   if !p.LookUp(s) {
+      p.Enter(s)
+      p.Generate("DECLARE", s, "INTEGER")
+   }
+}
+
+// TODO placeholder for enter function
+func (p *Parser) Enter(s string) {
+
+   if len(p.symbolTable) < p.maxSymbol {
+      p.symbolTable[len(p.symbolTable) - 1] = s
+   }
+}
+
+// TODO placeholder for get temp function
+func (p *Parser) GetTemp() (tempName string) {
+
+   p.maxTemp++
+
+   var buf bytes.Buffer
+   buf.WriteString("Temp&")
+   buf.WriteString(strconv.Itoa(p.maxTemp))
+
+   p.CheckId(buf.String())
+   
+   return
 }
