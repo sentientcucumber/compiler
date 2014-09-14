@@ -70,24 +70,24 @@ how to compile and run the program.
 
 ** Running the Program
    You can run the executable that was compiled. Ensure you are in the 
-   directory where the ~sample.micro~ file is located.
+   directory where the ~simple.micro~ file is located.
    #+BEGIN_SRC 
    $ cd ../03/bin
-   $ ./main sample.micro
+   $ ./main simple.micro
    #+END_SRC
    This will run scan the ~simple.micro~ file. There is also a ~complex.micro~
    file in the ~bin~ folder that uses some of the tokens found in the 
    extended Micro language.
 
 * Sample Input and Output
-  There are still some existing issues when outputting larger files (sample2.micro) for instance
+  There are still some existing issues when outputting larger files (complex.micro) for instance
   doesn't print quite right.
 
   #+BEGIN_SRC 
   simple.micro input
   BEGIN A := BB + 314 + A; END EofSym
 
-  sample.micro output
+  simple.micro output
   <system goal> --> BeginSym <program> EndSym EofSym
   <system goal> --> BeginSym <statement list> EndSym EofSym
   <system goal> --> BeginSym <statement> EndSym EofSym  ahead  AssignOp
