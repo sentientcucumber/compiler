@@ -2,6 +2,7 @@ completed/
 01/pkg/
 02/pkg/
 03/pkg/
-/03/bin/generated
+04/pkg/
+03/bin/generated
 *.tex
 *.pdf

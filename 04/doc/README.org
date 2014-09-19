@@ -1,4 +1,4 @@
-#+TITLE: Assignment 3
+#+TITLE: Assignment 4
 #+AUTHOR: Michael Hunsinger
 #+OPTIONS: toc:nil
 #+LATEX_CLASS: article
@@ -10,6 +10,7 @@
 #+LaTeX_HEADER: \addtolength{\evensidemargin}{-.75in}
 #+LaTeX_HEADER: \addtolength{\textwidth}{1.75in}
 #+LaTeX_HEADER: \usepackage{paralist}
+#+LaTeX_HEADER: \setlength\parindent{0pt}
 #+LaTeX_HEADER: \let\itemize\compactitem
 #+LaTeX_HEADER: \let\description\compactdesc
 #+LaTeX_HEADER: \let\enumerate\compactenum
@@ -116,3 +117,47 @@ how to compile and run the program.
   STORE Temp&2, A
   HALT
   #+END_SRC
+* Regex and DFA
+  The first DFA diagram results in the following regex expression:
+  #+BEGIN_CENTER
+  a(b) + a | b(a) + b
+  #+END_CENTER
+
+  The second DFA diagram results in the following regex expression:
+  #+BEGIN_CENTER
+  a (\lambda | (bcda | cda)* )
+  #+END_CENTER
+  
+  Below is a deterministic finite automata for the (a | (bc)* d)+
+  #+BEGIN_CENTER
+  #+BEGIN_SRC dot :file fsm.png :cmdline -Kdot -Tpng
+  digraph G {
+      rankdir = LR
+      ratio = expand
+      size = "10,10"
+      edge [dir=one]
+
+      node [shape = doublecircle, label = ""]; b;
+      node [shape = point]; start;
+      node [shape = circle, label = ""];
+
+      start -> a
+      a -> b [ label = "a" ]
+      b -> c [ label = "b" ]
+      b -> b [ label = "d" ]
+      a -> a [ label = "a" ]
+      c -> b [ label = "c" ]
+  }
+  #+END_SRC
+  #+END_CENTER
+
+  Below is the regular expression for Pascal-like fixed decimal literal.
+  #+BEGIN_CENTER
+  (D* | 0) . D* Not(0)
+  #+END_CENTER
+
+  A regular set is defined as a set of defined tokens from a given "alphabet".
+  If R is a regular expression that can describe of define a regular set, then
+  applying the reverse operator will have no affect on the fact that R is a 
+  regular set. That is, the resulting set from Rev(R) is also a regular set.
+  
