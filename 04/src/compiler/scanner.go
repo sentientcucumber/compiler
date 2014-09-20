@@ -1,5 +1,5 @@
 // Author: Michael Hunsinger
-// Date:   Aug 24 2014
+// Date:   Sept 18 2014
 // File:   scanner.go
 // Definiton for a scanner. Uses the Scan function to return Tokens from a file
 
@@ -8,182 +8,121 @@ package compiler
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"unicode"
+	"regexp"
 )
 
+// scanner definition
 type Scanner struct {
 	Reader      bytes.Reader
-	tokenBuffer bytes.Buffer
 }
 
-// returns the next token in the file
-func (s *Scanner) Scan() Token {
-	// clear the buffer
-	s.ClearBuffer()
+// constants used for regexp
+const (
+	letter      string = "[a-zA-Z]"
+	digit       string = "[0-9]"
+	whitespace  string = "(\t)*?( )*?(\n)*?"
+	plus        string = "\\+"
+	minus       string = "-"
+	equals      string = "="
+	colon       string = ":"
+	semicolon   string = ";"
+	lpar        string = "("
+	rpar        string = ")"
+	underscore  string = "_"
+)
 
-	if s.Eof() {
-		return EofSym
-	} else {
-		// start reading the next chunk of bytes
-		for !s.Eof() {
+// Primary function of the scanner, used to scan an entire file to generate a
+// list of tokens.
+func (s *Scanner) Scan(tokenCode Token, tokenText bytes.Buffer) Token {
+	state := StartState
+	tokenText.Reset()
 
-			// read the char current character
-			var currChar byte
-			s.Read(&currChar)
+	for (state != EndState) {
+		switch s.Action(&state, s.CurrentChar()) {
 
-			switch {
-			// if its a space, do nothing
-			case unicode.IsSpace(rune(currChar)):
-				break
+		case ActionError:
 
-			// if it's a letter, determine if it's an Id or reserved word
-			case unicode.IsLetter(rune(currChar)):
-				s.BufferChar(currChar)
+		case MoveAppend:
+			state = s.NextState(&state, s.CurrentChar())
+			tokenText.WriteByte(s.CurrentChar())
+			s.ConsumeChar()
+			
+		case MoveNoAppend:
+			state = s.NextState(&state, s.CurrentChar())
+			s.ConsumeChar()
 
-				for {
-					if nextChar, _ := s.Inspect(); unicode.IsLetter(rune(nextChar)) ||
-						unicode.IsDigit(rune(nextChar)) ||
-						nextChar == '_' {
-						s.BufferChar(nextChar)
-						s.Advance()
-					} else {
-						return s.CheckReserved()
-					}
-				}
-
-			// if it's a digit, it must be a intliteral
-			case unicode.IsDigit(rune(currChar)):
-				s.BufferChar(currChar)
-
-				for {
-					if nextChar, _ := s.Inspect(); unicode.IsDigit(rune(nextChar)) {
-						s.BufferChar(nextChar)
-						s.Advance()
-					} else {
-						return IntLiteral
-					}
-				}
-
-			// various 'simple' tokens
-			case currChar == '(':
-				return LParen
-			case currChar == ')':
-				return RParen
-			case currChar == ';':
-				return SemiColon
-			case currChar == ',':
-				return Comma
-			case currChar == '+':
-				return PlusOp
-			case currChar == '=':
-				return EqualityOp
-
-			// determine if it's an assigment, if not lexical error
-			case currChar == ':':
-				if nextChar, _ := s.Inspect(); nextChar == '=' {
-					s.Advance()
-					return AssignOp
-				} else {
-					panic(fmt.Errorf("Lexical error when reading %c", currChar))
-				}
-
-			// determine if MinusOp or comment, if comment, consume and move on
-			case currChar == '-':
-				if nextChar, _ := s.Inspect(); nextChar == '-' {
-					err := s.Read(&currChar)
-
-					for currChar != '\n' && err == nil {
-						s.Read(&currChar)
-					}
-				} else {
-					return MinusOp
-				}
-
-				// determine if exponentiation, if not lexical error
-			case currChar == '*':
-				if nextChar, _ := s.Inspect(); nextChar == '*' {
-					s.Advance()
-					return ExpOp
-				} else {
-					panic(fmt.Errorf("Lexical error when reading %c", currChar))
-				}
-
-			default:
-				panic(fmt.Errorf("Lexical error when reading %c", currChar))
+		case HaltAppend:
+			s.LookupCode(state, s.CurrentChar(), &tokenCode)
+			tokenText.WriteByte(s.CurrentChar())
+			s.CheckExceptions(&tokenCode, tokenText)
+			s.ConsumeChar()
+			if tokenCode == TokenError {
+				s.Scan(tokenCode, tokenText)
 			}
+
+			return tokenCode
+
+		case HaltNoAppend:
+			s.LookupCode(state, s.CurrentChar(), &tokenCode)
+			s.CheckExceptions(&tokenCode, tokenText)
+			s.ConsumeChar()
+			if tokenCode == TokenError {
+				s.Scan(tokenCode, tokenText)
+			}
+
+			return tokenCode
+
+		case HaltReuse:
+			s.LookupCode(state, s.CurrentChar(), &tokenCode)
+			s.CheckExceptions(&tokenCode, tokenText)
+			if tokenCode == TokenError {
+				s.Scan(tokenCode, tokenText)
+			}
+
+			return tokenCode
 		}
+
+		fmt.Printf("end state: %v, action: %v, char %c\n", state, action, s.CurrentChar())
 	}
 
-	// if none of these, it must be the EofSym
 	return EofSym
 }
 
-// Reads the next byte, will return an error if EOF
-func (s *Scanner) Read(char *byte) error {
-	var err error
-
-	if !s.Eof() {
-		*char, err = s.Reader.ReadByte()
-		return nil
-	} else {
-		return err
-	}
+// Based on the state (why is the character in here?), it will determine the
+// next action to perform.
+func (s *Scanner) Action(state* State, char byte) Action {
+	
+	return MoveAppend
 }
 
-// Returns the next character but does not advance the cursor
-func (s *Scanner) Inspect() (char byte, err error) {
-	if char, err := s.Reader.ReadByte(); err == nil {
-		s.Reader.UnreadByte()
+// Determine's the next state the scanner will be in. The next state will
+// determine the next action via the Action(state, char) function.
+func (s *Scanner) NextState(state* State, char byte) State {
 
-		return char, nil
-	} else {
-		return 0, err
-	}
+	return ProcessState
 }
 
-// Advances the cursor, does not return the character
-func (s *Scanner) Advance() {
+// Consume the current character, the character is not returned.
+func (s *Scanner) ConsumeChar() {
 	s.Reader.ReadByte()
 }
 
-// Adds the character to the tokenBuffer
-func (s *Scanner) BufferChar(char byte) {
-	s.tokenBuffer.WriteByte(char)
+
+func (s *Scanner) LookupCode(state State, char byte, code* Token) {
+	
 }
 
-// Clears out the tokenBuffer
-func (s *Scanner) ClearBuffer() {
-	s.tokenBuffer.Reset()
+func (s *Scanner) CheckExceptions(code* Token, text bytes.Buffer) {
+
 }
 
-// Determines if the tokenBuffer is a keyword or an Id
-func (s *Scanner) CheckReserved() Token {
-	// define a dictionary of the value in the buffer to Tokens
-	dictionary := map[string]Token{
-		"BEGIN": BeginSym,
-		"END":   EndSym,
-		"READ":  ReadSym,
-		"WRITE": WriteSym,
-	}
-
-	buf := s.tokenBuffer.String()
-	if value, exists := dictionary[buf]; exists {
-		return value
-	} else {
-		return Id
-	}
-}
-
-// Will return true if its the end of file, false if not
-func (s *Scanner) Eof() bool {
-	if _, err := s.Reader.ReadByte(); err == io.EOF {
+// Looks at the next character and returns it but does not advance the reader.
+func (s *Scanner) CurrentChar() byte {
+	if char, err := s.Reader.ReadByte(); err == nil {
 		s.Reader.UnreadByte()
-
-		return true
+		
+		return char
 	} else {
-		s.Reader.UnreadByte()
-
-		return false
+		return 0
 	}
 }

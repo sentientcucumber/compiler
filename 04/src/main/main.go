@@ -7,27 +7,25 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"compiler"
+	"fmt"
 	"io/ioutil"
 	"os"
 )
 
 func main() {
-	// the file for reading
-	src, _ := ioutil.ReadFile(os.Args[1])
+	if len(os.Args) < 2 {
+		fmt.Printf("You must pass in a micro file on the command line\n")
+		os.Exit(1)
+	}
+
+	src, err := ioutil.ReadFile(os.Args[1])
+	if err != nil {
+		fmt.Printf("'%s' is not a valid file name\n", os.Args[1])
+	}
+	
 	reader := bytes.NewReader(src)
-
-	// the file for writing
-	dst, _ := os.Create(os.Args[2])
-	writer := bufio.NewWriter(dst)
-	defer dst.Close()
-
-	// setup the parser
-	p := compiler.Parser{Writer: *writer}
-	p.Scanner = compiler.Scanner{Reader: *reader}
-
-	// parse the file!
-	p.SystemGoal()
+	s := compiler.Scanner { Reader: *reader}
+	s.Scan(compiler.BeginSym, *bytes.NewBuffer( *new ([]byte)))
 }

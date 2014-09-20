@@ -6,3 +6,4 @@ completed/
 03/bin/generated
 *.tex
 *.pdf
+/04/bin/main
