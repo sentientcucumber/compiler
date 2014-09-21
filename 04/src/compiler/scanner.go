@@ -19,7 +19,7 @@ type Scanner struct {
 const (
 	alpha       string = "[a-zA-Z]"
 	numeric     string = "[0-9]"
-	whitespace  string = " +"
+	whitespace  string = "(?: |\n|\t)"
 	plus        string = "\\+"
 	dash        string = "-"
 	equals      string = "="
@@ -44,6 +44,7 @@ func (s *Scanner) Scan(tokenCode* int, tokenText* bytes.Buffer) {
 
 		case ActionError:
 			state = EndState
+			*tokenCode = EofSym
 			
 		case MoveAppend:
 			state = s.nextState(state, currChar)
@@ -188,6 +189,10 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 
 		case s.isWhitespace(char):
 			next = ScanWhitespace
+
+		case string(char) == "":
+			next = EndState
+
 		}
 		
 	case ScanAlpha:
@@ -241,21 +246,6 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 	}
 
 	return 
-}
-
-// Consume the current character, the character is not returned.
-func (s *Scanner) consumeChar() {
-	s.Reader.ReadByte()
-}
-
-// Looks at the next character and returns it but does not advance the reader.
-func (s *Scanner) currentChar() byte {
-	if char, err := s.Reader.ReadByte(); err == nil {
-		s.Reader.UnreadByte()
-		return char
-	} else {
-		return 0
-	}
 }
 
 // TokenCode is obtained 
@@ -322,6 +312,10 @@ func (s *Scanner) lookupCode(state State, char byte, code* int) {
 	case ProcessComment:
 		*code = Comment
 		
+	case EndState:
+		fmt.Printf("here\n")
+		*code = EofSym
+
 	default:
 		*code = 0
 	}
@@ -341,9 +335,21 @@ func (s *Scanner) checkExceptions(code* int, text bytes.Buffer) {
 		
 	case text.String() == "WRITE":
 		*code = WriteSym
+	}
+}
 
-	case text.String() == "EofSym":
-		*code = EofSym
+// Consume the current character, the character is not returned.
+func (s *Scanner) consumeChar() {
+	s.Reader.ReadByte()
+}
+
+// Looks at the next character and returns it but does not advance the reader.
+func (s *Scanner) currentChar() byte {
+	if char, err := s.Reader.ReadByte(); err == nil {
+		s.Reader.UnreadByte()
+		return char
+	} else {
+		return 0
 	}
 }
 

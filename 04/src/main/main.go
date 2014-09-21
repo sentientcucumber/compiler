@@ -28,7 +28,7 @@ func main() {
 	reader := bytes.NewReader(src)
 	s := compiler.Scanner { Reader: *reader}
 	tokenCode := 0
-	tokenArray := make([]int, 20)
+	tokenArray := make([]int, 75)
 	
 	for i := 0; tokenCode != compiler.EofSym && i < cap(tokenArray); i++ {
 		s.Scan(&tokenCode, bytes.NewBuffer(*new ([]byte)))
@@ -37,3 +37,4 @@ func main() {
 
 	fmt.Printf("TokenArray %v\n", tokenArray)
 }
+
