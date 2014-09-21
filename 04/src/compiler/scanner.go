@@ -40,15 +40,11 @@ func (s *Scanner) Scan(tokenCode* int, tokenText* bytes.Buffer) {
 
 	for state != EndState {
 		currChar := s.currentChar()
-		fmt.Printf("Start of the loop -> state: %d, char: '%c', token: %d \n",
-			state, currChar, *tokenCode)
 
 		switch s.Action(state, currChar) {
 
 		case ActionError:
 			panic(fmt.Errorf("Invalid character for the current state"))
-			// state = EndState
-			// *tokenCode = EofSym
 			
 		case MoveAppend:
 			state = s.nextState(state, currChar)
@@ -184,7 +180,7 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 			next = ScanNumeric
 
 		case s.isWhitespace(char):
-			next = ScanWhitespace
+			next = StartState
 
 		case s.isDash(char):
 			next = ScanDash
@@ -205,31 +201,6 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 			next = ScanNumeric
 		} else {
 			next = ProcessNumeric
-		}
-
-	case ScanWhitespace:
-		if s.isWhitespace(char) {
-			next = ScanWhitespace
-		} else if s.isAlpha(char) {
-			next = ScanAlpha
-		} else if s.isNumeric(char) {
-			next = ScanNumeric
-		} else if s.isPlus(char) {
-			next = ProcessPlusOp
-		} else if s.isSemicolon(char) {
-			next = ProcessSemicolon
-		} else if s.isLParen(char) {
-			next = ProcessLParen
-		} else if s.isRParen(char) {
-			next = ProcessRParen
-		} else if s.isComma(char) {
-			next = ProcessComma
-		} else if s.isColon(char) {
-			next = ScanColon
-		} else if s.isEquals(char) {
-			next = ProcessAssign
-		} else if s.isDash(char) {
-			next = ScanDash
 		}
 
 	case ScanColon:
