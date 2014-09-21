@@ -46,8 +46,9 @@ func (s *Scanner) Scan(tokenCode* int, tokenText* bytes.Buffer) {
 		switch s.Action(state, currChar) {
 
 		case ActionError:
-			state = EndState
-			*tokenCode = EofSym
+			panic(fmt.Errorf("Invalid character for the current state"))
+			// state = EndState
+			// *tokenCode = EofSym
 			
 		case MoveAppend:
 			state = s.nextState(state, currChar)
@@ -100,27 +101,19 @@ func (s *Scanner) Action(state State, char byte) (a Action) {
 	case StartState:
 		switch {
 
-		case s.isAlpha(char):
-			a = MoveAppend
-
-		case s.isNumeric(char):
+		case s.isAlpha(char), s.isNumeric(char), s.isColon(char),
+			 s.isDash(char):
 			a = MoveAppend
 
 		case s.isWhitespace(char):
 			a = MoveNoAppend
 
 		case s.isPlus(char), s.isSemicolon(char), s.isLParen(char),
-     		 s.isRParen(char), s.isComma(char):
+			 s.isRParen(char), s.isComma(char), s.isEquals(char):
 			a = HaltAppend
 
-		case s.isColon(char):
-			a = MoveAppend
-
-		case s.isEquals(char):
-			a = HaltAppend
-
-		case s.isDash(char):
-			a = MoveAppend
+		case s.isEof(char):
+			a = HaltNoAppend
 
 		default:
 			a = ActionError
@@ -162,7 +155,7 @@ func (s *Scanner) Action(state State, char byte) (a Action) {
 		}
 
 	case ProcessPlusOp, ProcessSemicolon, ProcessLParen, ProcessRParen,
-		ProcessComma, ProcessAssign, ProcessComment:
+		 ProcessComma, ProcessAssign, ProcessComment:
 		a = HaltReuse
 
 	case ScanComment:
@@ -195,6 +188,9 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 
 		case s.isDash(char):
 			next = ScanDash
+
+		case s.isColon(char):
+			next = ScanColon
 		}
 		
 	case ScanAlpha:
@@ -234,6 +230,13 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 			next = ProcessAssign
 		} else if s.isDash(char) {
 			next = ScanDash
+		}
+
+	case ScanColon:
+		if s.isEquals(char) {
+			next = ProcessAssign
+		} else {
+			next = ErrorState
 		}
 
 	case ScanDash:
@@ -298,6 +301,8 @@ func (s *Scanner) lookupCode(state State, char byte, code* int) {
 			*code = Comma
 		} else if s.isDash(char) {
 			*code = MinusOp
+		} else if s.isEof(char) {
+			*code = EofSym
 		}
 
 	case ProcessPlusOp:
@@ -321,8 +326,9 @@ func (s *Scanner) lookupCode(state State, char byte, code* int) {
 	case ProcessComment:
 		*code = Comment
 		
-	case EndState:
-		*code = EofSym
+	// case EndState:
+	// 	*code = EofSym
+
 
 	default:
 		*code = 0
@@ -430,5 +436,11 @@ func (s *Scanner) isRParen(c byte) bool {
 // Determines if the character passed to is comma
 func (s *Scanner) isComma(c byte) bool {
 	re := regexp.MustCompile(comma)
+	return re.MatchString(string(c))
+}
+
+// Determines if the character passed to is eof
+func (s *Scanner) isEof(c byte) bool {
+	re := regexp.MustCompile(string(""))
 	return re.MatchString(string(c))
 }

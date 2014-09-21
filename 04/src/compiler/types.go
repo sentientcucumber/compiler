@@ -44,21 +44,22 @@ type State uint8
 const (
 	StartState    State = iota // 0
 	EndState                   // 1
-	ScanAlpha                  // 2
-	ScanNumeric                // 3
-	ScanWhitespace             // 4
-	ScanColon                  // 5
-	ScanDash                   // 6
-	ScanEquals                 // 7
-	ScanComment                // 8
-	ProcessAlpha               // 9
-	ProcessNumeric             // 10
-	ProcessPlusOp              // 11
-	ProcessSemicolon           // 12
-	ProcessLParen              // 13
-	ProcessRParen              // 14
-	ProcessComma               // 15
-	ProcessAssign              // 16
-	ProcessMinusOp             // 17
-	ProcessComment             // 18
+	ErrorState                 // 2
+	ScanAlpha                  // 3
+	ScanNumeric                // 4
+	ScanWhitespace             // 5
+	ScanColon                  // 6
+	ScanDash                   // 7
+	ScanEquals                 // 8
+	ScanComment                // 9
+	ProcessAlpha               // 10
+	ProcessNumeric             // 11
+	ProcessPlusOp              // 12
+	ProcessSemicolon           // 13
+	ProcessLParen              // 14
+	ProcessRParen              // 15
+	ProcessComma               // 16
+	ProcessAssign              // 17
+	ProcessMinusOp             // 18
+	ProcessComment             // 19
 )
