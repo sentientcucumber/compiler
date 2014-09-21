@@ -33,9 +33,8 @@ const (
 	AssignOp                   // 11
 	PlusOp                     // 12
 	MinusOp                    // 13
-	EofSym                     // 14
-	Whitespace                 // 15
-	Comment                    // 16
+	Comment                    // 14
+	EofSym                     // 15
 )
 // 1 5 11 5 12 6 12 5 9 9 5 5 2 14
 

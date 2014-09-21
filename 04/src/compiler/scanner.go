@@ -296,13 +296,9 @@ func (s *Scanner) lookupCode(state State, char byte, code* int) {
 
 	case ProcessComment:
 		*code = Comment
-		
-	// case EndState:
-	// 	*code = EofSym
-
 
 	default:
-		*code = 0
+		*code = UnknownToken
 	}
 }
 
