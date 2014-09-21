@@ -8,7 +8,6 @@ package compiler
 import (
 	"bytes"
 	"regexp"
-	"fmt"
 )
 
 // scanner definition
@@ -42,64 +41,45 @@ func (s *Scanner) Scan(tokenCode* int, tokenText* bytes.Buffer) {
 		currChar := s.currentChar()
 
 		switch s.Action(state, currChar) {
+
 		case ActionError:
-			fmt.Printf("ActionError: state: %d\n", state)
 			state = EndState
 			
 		case MoveAppend:
-			fmt.Printf("MoveAppend: state: %d, text: '%s', char: '%c'\n",
-				state, tokenText.String(), currChar)
 			state = s.nextState(state, currChar)
 			tokenText.WriteByte(currChar)
 			s.consumeChar()
 			
 		case MoveNoAppend:
-			fmt.Printf("MoveNoAppend: state %d, text: '%s', char: '%c'\n",
-				state, tokenText.String(), currChar)
 			state = s.nextState(state, currChar)
 			s.consumeChar()
 
 		case HaltAppend:
-			fmt.Printf("HaltAppend: state %d, text '%s' code %d, char '%c'\n", state,
-				tokenText.String(), *tokenCode, currChar)
 			s.lookupCode(state, currChar, tokenCode)
 			tokenText.WriteByte(currChar)
 			s.checkExceptions(tokenCode, *tokenText)
 			s.consumeChar()
 			if *tokenCode == UnknownToken {
-				fmt.Printf("========== NEW SCANNER ===========\n")
 				s.Scan(tokenCode, tokenText)
-				fmt.Printf("========== END SCANNER ===========\n")
 			}
 
 			return
 
 		case HaltNoAppend:
-			fmt.Printf("HaltNoAppend: state %d, text '%s' code %d, char '%c'\n",
-				state, tokenText.String(), *tokenCode, currChar)
 			s.lookupCode(state, currChar, tokenCode)
 			s.checkExceptions(tokenCode, *tokenText)
 			s.consumeChar()
 			if *tokenCode == UnknownToken {
-				fmt.Printf("========== NEW SCANNER ===========\n")
 				s.Scan(tokenCode, tokenText)
-				fmt.Printf("========== END SCANNER ===========\n")
 			}
 
 			return
 
 		case HaltReuse:
-			fmt.Printf("Begin HaltReuse: state %d, text '%s', code %d\n", state,
-				tokenText.String(), *tokenCode)
 			s.lookupCode(state, currChar, tokenCode)
-			fmt.Printf("HaltReuse after LookupCode %d\n", *tokenCode)
 			s.checkExceptions(tokenCode, *tokenText)
-			fmt.Printf("End HaltReuse: state %d, text '%s', code %d\n", state,
-				tokenText.String(), *tokenCode)
 			if *tokenCode == UnknownToken {
-				fmt.Printf("========== NEW SCANNER ===========\n")
 				s.Scan(tokenCode, tokenText)
-				fmt.Printf("========== END SCANNER ===========\n")
 			}
 
 			return
@@ -115,7 +95,11 @@ func (s *Scanner) Action(state State, char byte) (a Action) {
 
 	case StartState:
 		switch {
+
 		case s.isAlpha(char):
+			a = MoveAppend
+
+		case s.isNumeric(char):
 			a = MoveAppend
 
 		case s.isWhitespace(char):
@@ -124,6 +108,15 @@ func (s *Scanner) Action(state State, char byte) (a Action) {
 		case s.isPlus(char), s.isSemicolon(char), s.isLParen(char),
      		 s.isRParen(char), s.isComma(char):
 			a = HaltAppend
+
+		case s.isColon(char):
+			a = MoveAppend
+
+		case s.isEquals(char):
+			a = HaltAppend
+
+		case s.isDash(char):
+			a = HaltReuse
 
 		default:
 			a = ActionError
@@ -150,9 +143,26 @@ func (s *Scanner) Action(state State, char byte) (a Action) {
 			a = HaltReuse
 		}
 
+	case ScanColon:
+		if s.isEquals(char) {
+			a = HaltAppend
+		} else {
+			a = ActionError
+		}
+
+	case ScanDash:
+		if s.isDash(char) {
+			a = MoveAppend
+		} else {
+			a = HaltReuse
+		}
+
 	case ProcessPlusOp, ProcessSemicolon, ProcessLParen, ProcessRParen,
-	     ProcessComma:
+		ProcessComma, ProcessAssign:
 		a = HaltReuse
+
+	case ProcessComment:
+		a = HaltNoAppend
 		
 	default:
 		a = ActionError
@@ -187,6 +197,13 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 			next = ProcessAlpha
 		}
 
+	case ScanNumeric:
+		if s.isNumeric(char) {
+			next = ScanNumeric
+		} else {
+			next = ProcessNumeric
+		}
+
 	case ScanWhitespace:
 		if s.isWhitespace(char) {
 			next = ScanWhitespace
@@ -204,15 +221,21 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 			next = ProcessRParen
 		} else if s.isComma(char) {
 			next = ProcessComma
+		} else if s.isColon(char) {
+			next = ScanColon
+		} else if s.isEquals(char) {
+			next = ProcessAssign
+		} else if s.isDash(char) {
+			next = ScanDash
 		}
 
-	case ScanNumeric:
-		if s.isNumeric(char) {
-			next = ScanNumeric
+	case ScanDash:
+		if s.isDash(char) {
+			next = ProcessComment
 		} else {
-			next = ProcessNumeric
+			next = ProcessMinusOp
 		}
-
+		
 	default:
 		next = EndState
 	}
@@ -249,6 +272,20 @@ func (s *Scanner) lookupCode(state State, char byte, code* int) {
 			*code = IntLiteral
 		}
 
+	case ScanColon:
+		if s.isEquals(char) {
+			*code = AssignOp
+		} else {
+			*code = UnknownToken
+		}
+
+	case ScanDash:
+		if s.isDash(char) {
+			*code = Comment
+		} else {
+			*code = MinusOp
+		}
+
 	case StartState:
 		if s.isPlus(char) {
 			*code = PlusOp
@@ -260,6 +297,8 @@ func (s *Scanner) lookupCode(state State, char byte, code* int) {
 			*code = RParen
 		} else if s.isComma(char) {
 			*code = Comma
+		} else if s.isDash(char) {
+			*code = MinusOp
 		}
 
 	case ProcessPlusOp:
@@ -276,6 +315,12 @@ func (s *Scanner) lookupCode(state State, char byte, code* int) {
 
 	case ProcessComma:
 		*code = Comma
+
+	case ProcessMinusOp:
+		*code = MinusOp
+
+	case ProcessComment:
+		*code = Comment
 		
 	default:
 		*code = 0
@@ -333,22 +378,22 @@ func (s *Scanner) isPlus(c byte) bool {
 }
 
 // Determines if the character passed to is minus
-// func (s *Scanner) isDash(c byte) bool {
-// 	re := regexp.MustCompile(dash)
-// 	return re.MatchString(string(c))
-// }
+func (s *Scanner) isDash(c byte) bool {
+	re := regexp.MustCompile(dash)
+	return re.MatchString(string(c))
+}
 
 // Determines if the character passed to is equals
-// func (s *Scanner) isEquals(c byte) bool {
-// 	re := regexp.MustCompile(equals)
-// 	return re.MatchString(string(c))
-// }
+func (s *Scanner) isEquals(c byte) bool {
+	re := regexp.MustCompile(equals)
+	return re.MatchString(string(c))
+}
 
 // Determines if the character passed to is colon
-// func (s *Scanner) isColon(c byte) bool {
-// 	re := regexp.MustCompile(colon)
-// 	return re.MatchString(string(c))
-// }
+func (s *Scanner) isColon(c byte) bool {
+	re := regexp.MustCompile(colon)
+	return re.MatchString(string(c))
+}
 
 // Determines if the character passed to is semicolon
 func (s *Scanner) isSemicolon(c byte) bool {

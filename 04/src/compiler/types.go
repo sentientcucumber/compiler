@@ -33,23 +33,31 @@ const (
 	AssignOp                   // 11
 	PlusOp                     // 12
 	MinusOp                    // 13
-	EofSym                     // 14
+	Comment                    // 14
+	EofSym                     // 15
+	Whitespace
 )
-// TokenArray [1 7 5 8 12 5 10 5 9 14 0 0 0 0 0 0 0 0 0 0]
 
 // state enumerations and definitions
 type State uint8
 const (
 	StartState    State = iota // 0
-	ScanAlpha                  // 1
-	ScanNumeric                // 2
-	ScanWhitespace             // 3
-	ProcessAlpha               // 4
-	ProcessNumeric             // 5
-	ProcessPlusOp              // 6
-	ProcessSemicolon           // 7
-	ProcessLParen              // 8
-	ProcessRParen              // 9
-	ProcessComma               // 10
-	EndState                   // 11
+	EndState                   // 1
+	ScanAlpha                  // 2
+	ScanNumeric                // 3
+	ScanWhitespace             // 4
+	ProcessAlpha               // 5
+	ProcessNumeric             // 6
+	ProcessPlusOp              // 7
+	ProcessSemicolon           // 8
+	ProcessLParen              // 9
+	ProcessRParen              // 10
+	ProcessComma               // 11
+	ProcessWhitespace
+	ProcessAssign
+	ProcessMinusOp
+	ProcessComment
+	ScanColon
+	ScanDash
+	ScanEquals
 )

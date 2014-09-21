@@ -35,6 +35,5 @@ func main() {
 		tokenArray[i] = tokenCode
 	}
 
-	fmt.Printf("Program termination tokenCode %d\n", tokenCode)
 	fmt.Printf("TokenArray %v\n", tokenArray)
 }
