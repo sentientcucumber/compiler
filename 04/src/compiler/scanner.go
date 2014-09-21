@@ -8,6 +8,7 @@ package compiler
 import (
 	"bytes"
 	"regexp"
+	"fmt"
 )
 
 // scanner definition
@@ -19,7 +20,7 @@ type Scanner struct {
 const (
 	alpha       string = "[a-zA-Z]"
 	numeric     string = "[0-9]"
-	whitespace  string = "(?: |\n|\t)"
+	whitespace  string = "(?: |\n|\t)+"
 	plus        string = "\\+"
 	dash        string = "-"
 	equals      string = "="
@@ -39,6 +40,8 @@ func (s *Scanner) Scan(tokenCode* int, tokenText* bytes.Buffer) {
 
 	for state != EndState {
 		currChar := s.currentChar()
+		fmt.Printf("Start of the loop -> state: %d, char: '%c', token: %d \n",
+			state, currChar, *tokenCode)
 
 		switch s.Action(state, currChar) {
 
@@ -117,7 +120,7 @@ func (s *Scanner) Action(state State, char byte) (a Action) {
 			a = HaltAppend
 
 		case s.isDash(char):
-			a = HaltReuse
+			a = MoveAppend
 
 		default:
 			a = ActionError
@@ -159,12 +162,12 @@ func (s *Scanner) Action(state State, char byte) (a Action) {
 		}
 
 	case ProcessPlusOp, ProcessSemicolon, ProcessLParen, ProcessRParen,
-		ProcessComma, ProcessAssign:
+		ProcessComma, ProcessAssign, ProcessComment:
 		a = HaltReuse
 
-	case ProcessComment:
-		a = HaltNoAppend
-		
+	case ScanComment:
+		a = MoveNoAppend
+
 	default:
 		a = ActionError
 	}
@@ -190,9 +193,8 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 		case s.isWhitespace(char):
 			next = ScanWhitespace
 
-		case string(char) == "":
-			next = EndState
-
+		case s.isDash(char):
+			next = ScanDash
 		}
 		
 	case ScanAlpha:
@@ -236,9 +238,16 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 
 	case ScanDash:
 		if s.isDash(char) {
-			next = ProcessComment
+			next = ScanComment
 		} else {
 			next = ProcessMinusOp
+		}
+
+	case ScanComment:
+		if char == '\n' {
+			next = ProcessComment
+		} else {
+			next = ScanComment
 		}
 		
 	default:
@@ -313,7 +322,6 @@ func (s *Scanner) lookupCode(state State, char byte, code* int) {
 		*code = Comment
 		
 	case EndState:
-		fmt.Printf("here\n")
 		*code = EofSym
 
 	default:

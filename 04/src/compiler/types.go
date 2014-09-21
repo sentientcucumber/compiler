@@ -33,10 +33,11 @@ const (
 	AssignOp                   // 11
 	PlusOp                     // 12
 	MinusOp                    // 13
-	Comment                    // 14
-	EofSym                     // 15
-	Whitespace
+	EofSym                     // 14
+	Whitespace                 // 15
+	Comment                    // 16
 )
+// 1 5 11 5 12 6 12 5 9 9 5 5 2 14
 
 // state enumerations and definitions
 type State uint8
@@ -46,18 +47,18 @@ const (
 	ScanAlpha                  // 2
 	ScanNumeric                // 3
 	ScanWhitespace             // 4
-	ProcessAlpha               // 5
-	ProcessNumeric             // 6
-	ProcessPlusOp              // 7
-	ProcessSemicolon           // 8
-	ProcessLParen              // 9
-	ProcessRParen              // 10
-	ProcessComma               // 11
-	ProcessWhitespace
-	ProcessAssign
-	ProcessMinusOp
-	ProcessComment
-	ScanColon
-	ScanDash
-	ScanEquals
+	ScanColon                  // 5
+	ScanDash                   // 6
+	ScanEquals                 // 7
+	ScanComment                // 8
+	ProcessAlpha               // 9
+	ProcessNumeric             // 10
+	ProcessPlusOp              // 11
+	ProcessSemicolon           // 12
+	ProcessLParen              // 13
+	ProcessRParen              // 14
+	ProcessComma               // 15
+	ProcessAssign              // 16
+	ProcessMinusOp             // 17
+	ProcessComment             // 18
 )
