@@ -17,9 +17,9 @@ const (
 )
 
 // token enumeration and definitions
-type Token uint8
+type Token int
 const (
-	TokenError Token = iota    // 0
+	UnknownToken    int = iota // 0
 	BeginSym                   // 1
 	EndSym                     // 2
 	ReadSym                    // 3
@@ -33,16 +33,23 @@ const (
 	AssignOp                   // 11
 	PlusOp                     // 12
 	MinusOp                    // 13
-	ExpOp                      // 14
-	EqualityOp                 // 15
-	EofSym                     // 16
+	EofSym                     // 14
 )
+// TokenArray [1 7 5 8 12 5 10 5 9 14 0 0 0 0 0 0 0 0 0 0]
 
 // state enumerations and definitions
 type State uint8
 const (
-	StartState State = iota    // 0
-	EndState                   // 1
-	ReadState                  // 2
-	ProcessState               // 3
+	StartState    State = iota // 0
+	ScanAlpha                  // 1
+	ScanNumeric                // 2
+	ScanWhitespace             // 3
+	ProcessAlpha               // 4
+	ProcessNumeric             // 5
+	ProcessPlusOp              // 6
+	ProcessSemicolon           // 7
+	ProcessLParen              // 8
+	ProcessRParen              // 9
+	ProcessComma               // 10
+	EndState                   // 11
 )
