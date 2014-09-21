@@ -32,6 +32,12 @@
      create a file ~generatedOutput~ with all the assembly operations generated
      during parsing.
 
+** [2014-09-21 Sun]
+   - Changed the scanner provide lexical analysis.
+   - Removed the ~parser.go~ file with the new scanner implementation.
+   - Added better checking for files passed in at execution.
+   - Tokens are no longer their own structs, they're now an ~int~.
+
 * Go Documentation
 This implentation of the scanner uses Google's new language Go. There are
 instructions on how to setup Go, a description of the file structure, and
@@ -81,41 +87,36 @@ how to compile and run the program.
    extended Micro language.
 
 * Sample Input and Output
-  There are still some existing issues when outputting larger files (complex.micro) for instance
-  doesn't print quite right.
-
+  Sample output was almost identical to the previous version of the scanner with
+  the exception of the recording comment tokens.
+  
   #+BEGIN_SRC 
   simple.micro input
+
   BEGIN A := BB + 314 + A; END EofSym
 
-  simple.micro output
-  <system goal> --> BeginSym <program> EndSym EofSym
-  <system goal> --> BeginSym <statement list> EndSym EofSym
-  <system goal> --> BeginSym <statement> EndSym EofSym  ahead  AssignOp
-  <system goal> --> BeginSym <ident> := <expression> ; EndSym EofSym
-  <system goal> --> BeginSym Id := <expression> ; EndSym EofSym
-  <system goal> --> BeginSym Id := <primary> <add op> <expression> ; EndSym EofSym
-  <system goal> --> BeginSym Id := <ident> <add op> <expression> ; EndSym EofSym
-  <system goal> --> BeginSym Id := Id <add op> <expression> ; EndSym EofSym
-  <system goal> --> BeginSym Id := Id PlusOp <expression> ; EndSym EofSym
-  <system goal> --> BeginSym Id := Id PlusOp <primary> ; EndSym EofSym
-  <system goal> --> BeginSym Id := Id PlusOp ( <expression> ) ; EndSym EofSym
-  <system goal> --> BeginSym Id := Id PlusOp ( <primary> <add op> <expression> ) ; EndSym EofSym
-  <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral <add op> <expression> ) ; EndSym EofSym
-  <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <expression> ) ; EndSym EofSym
-  <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <primary> ) ; EndSym EofSym
-  <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp <ident> ) ; EndSym EofSym
-  <system goal> --> BeginSym Id := Id PlusOp ( IntLiteral MinusOp Id ) ; EndSym EofSym
+  simple.micro output 
 
-  generated assembly output
-  DECLARE A, INTEGER
-  DECLARE BB, INTEGER
-  DECLARE Temp&1, INTEGER
-  ADD 314, A, Temp&1
-  DECLARE Temp&2, INTEGER
-  ADD BB, Temp&1, Temp&2
-  STORE Temp&2, A
-  HALT
+  BeginSym Id AssignOp Id PlusOp IntLiteral PlusOp Id SemiColon EndSym EofSym
+
+  complex.micro input
+
+  BEGIN --SOMETHING UNUSUAL
+     READ(A1, New_A, D, B);
+     C:= A1 +(New_A - D) - 75;
+     New_C:=((B - (7) + (C + D))) - (3 - A1); -- STUPID FORMULA
+     WRITE(C, A1 + New_C);
+     -- WHAT ABOUT := B + D;
+  END
+
+  complex.micro output
+
+  BeginSym Comment ReadSym LParen Id Comma Id Comma Id Comma Id RParen SemiColon
+  Id AssignOp Id PlusOp LParen Id MinusOp Id RParen MinusOp IntLiteral SemiColon
+  Id AssignOp LParen LParen Id MinusOp LParen IntLiteral RParen PlusOp LParen Id
+  PlusOp Id RParen RParen RParen MinusOp LParen IntLiteral MinusOp Id RParen
+  SemiColon Comment WriteSym LParen Id Comma Id PlusOp Id RParen SemiColon
+  Comment EndSym EofSym
   #+END_SRC
 * Regex and DFA
   The first DFA diagram results in the following regex expression:
