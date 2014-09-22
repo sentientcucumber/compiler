@@ -25,14 +25,14 @@ func main() {
 	if err != nil {
 		fmt.Printf("'%s' is not a valid file name\n", os.Args[1])
 	}
-	
+
 	reader := bytes.NewReader(src)
-	s := compiler.Scanner { Reader: *reader}
+	s := compiler.Scanner{Reader: *reader}
 	tokenCode := 0
 	tokenArray := make([]int, 100)
-	
+
 	for i := 0; tokenCode != compiler.EofSym && i < cap(tokenArray); i++ {
-		s.Scan(&tokenCode, bytes.NewBuffer(*new ([]byte)))
+		s.Scan(&tokenCode, bytes.NewBuffer(*new([]byte)))
 		tokenArray[i] = tokenCode
 	}
 
@@ -41,16 +41,16 @@ func main() {
 
 func PrintTokens(t []int) {
 
-	tokens := map[int]string {
-		1: "BeginSym",
-		2: "EndSym",
-		3: "ReadSym",
-		4: "WriteSym",
-		5: "Id",
-		6: "IntLiteral",
-		7: "LParen",
-		8: "RParen",
-		9: "SemiColon",
+	tokens := map[int]string{
+		1:  "BeginSym",
+		2:  "EndSym",
+		3:  "ReadSym",
+		4:  "WriteSym",
+		5:  "Id",
+		6:  "IntLiteral",
+		7:  "LParen",
+		8:  "RParen",
+		9:  "SemiColon",
 		10: "Comma",
 		11: "AssignOp",
 		12: "PlusOp",

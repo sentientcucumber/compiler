@@ -7,34 +7,34 @@ package compiler
 
 import (
 	"bytes"
-	"regexp"
 	"fmt"
+	"regexp"
 )
 
 // scanner definition
 type Scanner struct {
-	Reader      bytes.Reader
+	Reader bytes.Reader
 }
 
 // constants used for regexp
 const (
-	alpha       string = "[a-zA-Z]"
-	numeric     string = "[0-9]"
-	whitespace  string = "(?: |\n|\t)+"
-	plus        string = "\\+"
-	dash        string = "-"
-	equals      string = "="
-	colon       string = ":"
-	semicolon   string = ";"
-	lpar        string = "\\("
-	rpar        string = "\\)"
-	underscore  string = "_"
-	comma       string = ","
+	alpha      string = "[a-zA-Z]"
+	numeric    string = "[0-9]"
+	whitespace string = "(?: |\n|\t)+"
+	plus       string = "\\+"
+	dash       string = "-"
+	equals     string = "="
+	colon      string = ":"
+	semicolon  string = ";"
+	lpar       string = "\\("
+	rpar       string = "\\)"
+	underscore string = "_"
+	comma      string = ","
 )
 
 // Primary function of the scanner, used to scan an entire file to generate a
 // list of tokens.
-func (s *Scanner) Scan(tokenCode* int, tokenText* bytes.Buffer) {
+func (s *Scanner) Scan(tokenCode *int, tokenText *bytes.Buffer) {
 	state := StartState
 	tokenText.Reset()
 
@@ -45,12 +45,12 @@ func (s *Scanner) Scan(tokenCode* int, tokenText* bytes.Buffer) {
 
 		case ActionError:
 			panic(fmt.Errorf("Invalid character for the current state"))
-			
+
 		case MoveAppend:
 			state = s.nextState(state, currChar)
 			tokenText.WriteByte(currChar)
 			s.consumeChar()
-			
+
 		case MoveNoAppend:
 			state = s.nextState(state, currChar)
 			s.consumeChar()
@@ -98,14 +98,14 @@ func (s *Scanner) Action(state State, char byte) (a Action) {
 		switch {
 
 		case s.isAlpha(char), s.isNumeric(char), s.isColon(char),
-			 s.isDash(char):
+			s.isDash(char):
 			a = MoveAppend
 
 		case s.isWhitespace(char):
 			a = MoveNoAppend
 
 		case s.isPlus(char), s.isSemicolon(char), s.isLParen(char),
-			 s.isRParen(char), s.isComma(char), s.isEquals(char):
+			s.isRParen(char), s.isComma(char), s.isEquals(char):
 			a = HaltAppend
 
 		case s.isEof(char):
@@ -151,7 +151,7 @@ func (s *Scanner) Action(state State, char byte) (a Action) {
 		}
 
 	case ProcessPlusOp, ProcessSemicolon, ProcessLParen, ProcessRParen,
-		 ProcessComma, ProcessAssign, ProcessComment:
+		ProcessComma, ProcessAssign, ProcessComment:
 		a = HaltReuse
 
 	case ScanComment:
@@ -167,12 +167,12 @@ func (s *Scanner) Action(state State, char byte) (a Action) {
 // Determine's the next state the scanner will be in. The next state will
 // determine the next action via the Action(state, char) function.
 func (s *Scanner) nextState(state State, char byte) (next State) {
-	
+
 	switch state {
 
 	case StartState:
 		switch {
-		
+
 		case s.isAlpha(char):
 			next = ScanAlpha
 
@@ -188,7 +188,7 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 		case s.isColon(char):
 			next = ScanColon
 		}
-		
+
 	case ScanAlpha:
 		if s.isAlpha(char) || s.isNumeric(char) || s.isUnderscore(char) {
 			next = ScanAlpha
@@ -223,16 +223,16 @@ func (s *Scanner) nextState(state State, char byte) (next State) {
 		} else {
 			next = ScanComment
 		}
-		
+
 	default:
 		next = EndState
 	}
 
-	return 
+	return
 }
 
-// TokenCode is obtained 
-func (s *Scanner) lookupCode(state State, char byte, code* int) {
+// TokenCode is obtained
+func (s *Scanner) lookupCode(state State, char byte, code *int) {
 	switch state {
 
 	case ScanAlpha:
@@ -303,7 +303,7 @@ func (s *Scanner) lookupCode(state State, char byte, code* int) {
 }
 
 // Checks to see if text is a reserved word
-func (s *Scanner) checkExceptions(code* int, text bytes.Buffer) {
+func (s *Scanner) checkExceptions(code *int, text bytes.Buffer) {
 	switch {
 	case text.String() == "BEGIN":
 		*code = BeginSym
@@ -313,7 +313,7 @@ func (s *Scanner) checkExceptions(code* int, text bytes.Buffer) {
 
 	case text.String() == "READ":
 		*code = ReadSym
-		
+
 	case text.String() == "WRITE":
 		*code = WriteSym
 	}
