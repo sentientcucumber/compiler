@@ -1,4 +1,4 @@
-#+TITLE: Assignment 4
+#+TITLE: Assignment 5
 #+AUTHOR: Michael Hunsinger
 #+OPTIONS: toc:nil
 #+LATEX_CLASS: article
@@ -37,6 +37,9 @@
    - Removed the ~parser.go~ file with the new scanner implementation.
    - Added better checking for files passed in at execution.
    - Tokens are no longer their own structs, they're now an ~int~.
+
+** [2014-09-28 Sun]
+   - Implemented a grammar analyzer
 
 * Go Documentation
 This implentation of the scanner uses Google's new language Go. There are
@@ -87,78 +90,157 @@ how to compile and run the program.
    extended Micro language.
 
 * Sample Input and Output
-  Sample output was almost identical to the previous version of the scanner with
-  the exception of the recording comment tokens.
+  The grammar analyzer reads a file defining the grammar and returns the
+  productions, symbols, terminal, non-terminal, right-hand side and left-hand
+  side of the grammar. Since it's reading and determines the symbols/terminal
+  symbols, issues are raised when a space doesn't separate two terminal symbols,
+  usually noticed when using "shorthand" notation. For example, "(<non-terminal>);" will
+  read two terminals, "(" and ");", even though the second should be split
+  up. Ensure proper formatting on the input.
   
   #+BEGIN_SRC 
-  simple.micro input
+  microlang.txt input
+  <program>      -> begin <stmt list> end
+  <stmt list>    -> <statement> | <statement> <stmt list>
+  <statement>    -> Id := <expression>;
+  <statement>    -> read (<id list>) ;
+  <statement>    -> write (<expr list>) ;
+  <id list>      -> Id | Id , <id list>
+  <expr list>    -> <expression> | <expression>, <expr list>
+  <expression>   -> <primary> | <primary> <add op> <expression>
+  <primary>      -> (<expression>)
+  <primary>      -> Id
+  <primary>      -> IntLiteral
+  <add op>       -> PlusOp
+  <add op>       -> MinusOp
+  <system goal>  -> <program>$
 
-  BEGIN A := BB + 314 + A; END EofSym
-
-  simple.micro output 
-
-  BeginSym Id AssignOp Id PlusOp IntLiteral PlusOp Id SemiColon EndSym EofSym
-
-  complex.micro input
-
-  BEGIN --SOMETHING UNUSUAL
-     READ(A1, New_A, D, B);
-     C:= A1 +(New_A - D) - 75;
-     New_C:=((B - (7) + (C + D))) - (3 - A1); -- STUPID FORMULA
-     WRITE(C, A1 + New_C);
-     -- WHAT ABOUT := B + D;
-  END
-
-  complex.micro output
-
-  BeginSym Comment ReadSym LParen Id Comma Id Comma Id Comma Id RParen SemiColon
-  Id AssignOp Id PlusOp LParen Id MinusOp Id RParen MinusOp IntLiteral SemiColon
-  Id AssignOp LParen LParen Id MinusOp LParen IntLiteral RParen PlusOp LParen Id
-  PlusOp Id RParen RParen RParen MinusOp LParen IntLiteral MinusOp Id RParen
-  SemiColon Comment WriteSym LParen Id Comma Id PlusOp Id RParen SemiColon
-  Comment EndSym EofSym
-  #+END_SRC
-* Regex and DFA
-  The first DFA diagram results in the following regex expression:
-  #+BEGIN_CENTER
-  a(b) + a | b(a) + b
-  #+END_CENTER
-
-  The second DFA diagram results in the following regex expression:
-  #+BEGIN_CENTER
-  a (\lambda | (bcda | cda)* )
-  #+END_CENTER
+  microlang.txt output 
+  Productions ----------------------------
+  <statement>    -> write (<expr list>) ;
+  <expr list>    -> <expression> | <expression>, <expr list>
+  <add op>       -> PlusOp
+  <primary>      -> (<expression>)
+  <add op>       -> MinusOp
+  <system goal>  -> <program>$
+  <primary>      -> IntLiteral
+  <stmt list>    -> <statement> | <statement> <stmt list>
+  <statement>    -> Id := <expression>;
+  <statement>    -> read (<id list>) ;
+  <expression>   -> <primary> | <primary> <add op> <expression>
+  <program>      -> begin <stmt list> end
+  <id list>      -> Id | Id , <id list>
+  <primary>      -> Id
   
-  Below is a deterministic finite automata for the (a | (bc)* d)+
-  #+BEGIN_CENTER
-  #+BEGIN_SRC dot :file fsm.png :cmdline -Kdot -Tpng
-  digraph G {
-      rankdir = LR
-      ratio = expand
-      size = "10,10"
-      edge [dir=one]
-
-      node [shape = doublecircle, label = ""]; b;
-      node [shape = point]; start;
-      node [shape = circle, label = ""];
-
-      start -> a
-      a -> b [ label = "a" ]
-      b -> c [ label = "b" ]
-      b -> b [ label = "d" ]
-      a -> a [ label = "a" ]
-      c -> b [ label = "c" ]
-  }
-  #+END_SRC
-  #+END_CENTER
-
-  Below is the regular expression for Pascal-like fixed decimal literal.
-  #+BEGIN_CENTER
-  (D* | 0) . D* Not(0)
-  #+END_CENTER
-
-  A regular set is defined as a set of defined tokens from a given "alphabet".
-  If R is a regular expression that can describe of define a regular set, then
-  applying the reverse operator will have no affect on the fact that R is a 
-  regular set. That is, the resulting set from Rev(R) is also a regular set.
+  Symbols ------------------------------
+  begin
+  $
+  end
+  ;
+  read
+  (
+  write
+  IntLiteral
+  Id
+  :=
+  ,
+  MinusOp
+  )
+  PlusOp
   
+  Non-Terminals ------------------------
+  <program>
+  <statement>
+  <system goal>
+  <stmt list>
+  <expression>
+  <id list>
+  <expr list>
+  <primary>
+  <add op>
+  
+  Terminals ----------------------------
+  begin
+  $
+  end
+  ;
+  read
+  (
+  write
+  IntLiteral
+  Id
+  :=
+  ,
+  MinusOp
+  )
+  PlusOp
+  
+  RHS ----------------------------------
+  <statement> | <statement> <stmt list>
+  (<expression>)
+  MinusOp
+  write (<expr list>) ;
+  IntLiteral
+  begin <stmt list> end
+  Id | Id , <id list>
+  <primary> | <primary> <add op> <expression>
+  Id := <expression>;
+  read (<id list>) ;
+  <expression> | <expression>, <expr list>
+  Id
+  PlusOp
+  <program>$
+  
+  LHS ----------------------------------
+  <stmt list>
+  <statement>
+  <id list>
+  <program>
+  <expr list>
+  <expression>
+  <primary>
+  <add op>
+  <system goal>
+  #+END_SRC
+
+* Questions
+  *Eliminate any left-recursion or common left-factors in the following
+  grammars:*
+
+  |-----------+-----------|
+  | Grammar A | Grammar B |
+  |-----------+-----------|
+  | S -> 0A   | E -> Id T |
+  | S -> 1B   | E -> (E)  |
+  | A -> 0T   | T -> +E   |
+  | T -> B    | T -> *E   |
+  | T -> 1    |           |
+  | B -> 0S   |           |
+  | S -> 0    |           |
+  | S -> 1    |           |
+  |-----------+-----------|
+  
+  *Which of the following grammars are LL(1)? Explain why. Show First, Follow,*
+  *and Predict sets.*
+  
+  The first grammar is LL(1) because the two productions with the same left
+  hand side, A and B, each have disjoint Predict sets.
+
+  |-----------+-----------------+-----------------+-----------------|
+  | Grammar A | First Set       | Follow Set      | Predict Set     |
+  |-----------+-----------------+-----------------+-----------------|
+  | ~S~       | {a, b, \lambda} | {a, b, \lambda} | {a, b}          |
+  | ~A~       | {a, \lambda}    | {a, \lambda}    | {a)             |
+  | ~B~       | {b, \lambda}    | {b, \lambda}    | {b}             |
+  |-----------+-----------------+-----------------+-----------------|
+
+  The second grammar is also LL(1) because each production with the same left
+  hand side, S, B, and C, because each have disjoint Predict sets.
+
+  |-----------+--------------+------------+--------------|
+  | Grammar B | First Set    | Follow Set | Predict Set  |
+  |-----------+--------------+------------+--------------|
+  | ~S~       | {a, b, c, d} | {e}        | {a, b, c, d} |
+  | ~B~       | {b, c, d}    | {e}        | {b, c, d}    |
+  | ~C~       | {c, d}       | {e}        | {c, d}       |
+  |-----------+--------------+------------+--------------|

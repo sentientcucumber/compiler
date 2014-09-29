@@ -31,14 +31,23 @@ func (a *Analyzer) ReadGrammar() {
 		a.readProduction()
 	}
 
-	fmt.Printf("productions ----------------\n")
+	fmt.Printf("Productions ----------------------------\n")
 	productions.Print()
 
-	fmt.Printf("nonterminals ---------------\n")
+	fmt.Printf("\nSymbols ------------------------------\n")
+	terminals.Print()
+
+	fmt.Printf("\nNon-Terminals ------------------------\n")
 	nonterminals.Print()
 
-	fmt.Printf("nonterminals ---------------\n")
+	fmt.Printf("\nTerminals ----------------------------\n")
 	terminals.Print()
+
+	fmt.Printf("\nRHS ----------------------------------\n")
+	rhs.Print()
+
+	fmt.Printf("\nLHS ----------------------------------\n")
+	lhs.Print()
 }
 
 // Read each production of the grammar. This assumes that each production is on
@@ -60,11 +69,14 @@ func (a *Analyzer) readProduction() error {
 
 	readNonterminals(*buf)
 	readTerminals(*buf)
+	readRHS(*buf)
+	readLHS(*buf)
 	
 	return nil
 }
 
-// Reads all the nonterminals in a buffer
+// Reads all the nonterminals in a buffer, notice this passes them into a set
+// so any repetitions will be ignored
 func readNonterminals (buf bytes.Buffer) {
 
 	s := strings.Replace(buf.String(), "->", "", 1)
@@ -78,29 +90,34 @@ func readNonterminals (buf bytes.Buffer) {
 	}
 }
 
-// Reads all the terminals in a buffer
+// Reads all the terminals in a buffer, notice this passes them into a set so
+// any repetitions will be ignored
 func readTerminals (buf bytes.Buffer) {
 
-	// remove terminal symbols and arrow
+	// remove terminal symbols, arrow, and pipe
 	re := regexp.MustCompile("(?:\\<[a-zA-Z0-9 ]*\\>|->|\\|)")
 	s := re.ReplaceAllString(buf.String(), " ")
 
 	strs := strings.Fields(s)
+	
+	for _, i := range strs {
 
-	for _, e := range strs {
-		terminals.Add(e)
+		terminals.Add(i)
 	}
 }
 
-func (a *Analyzer) readRHS() {
+// Reads the RHS of each production, notice this passes them into a set so any
+// repetitions will be ignored
+func readRHS (buf bytes.Buffer) {
 
+	r := strings.Split(buf.String(), "->")
+	rhs.Add(strings.TrimSpace(r[1]))
 }
 
-func (a *Analyzer) readLHS() {
+// Reads the LHS of each production, notice this passes them into a set, so any
+// repetitions will be ignored
+func readLHS(buf bytes.Buffer) {
 
+	l := strings.Split(buf.String(), "->")
+	lhs.Add(strings.TrimSpace(l[0]))
 }
-
-func addUnique() {
-	
-}
-

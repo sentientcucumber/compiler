@@ -1,14 +1,14 @@
 <program>      -> begin <stmt list> end
 <stmt list>    -> <statement> | <statement> <stmt list>
-<statement>    -> Id := <expression> ;
-<statement>    -> read ( <id list> ) ;
-<statement>    -> write ( <expr list> ) ;
-<id list>      -> Id | Id, <id list>
+<statement>    -> Id := <expression>;
+<statement>    -> read (<id list>) ;
+<statement>    -> write (<expr list>) ;
+<id list>      -> Id | Id , <id list>
 <expr list>    -> <expression> | <expression>, <expr list>
 <expression>   -> <primary> | <primary> <add op> <expression>
-<primary>      -> ( <expression> )
+<primary>      -> (<expression>)
 <primary>      -> Id
 <primary>      -> IntLiteral
 <add op>       -> PlusOp
 <add op>       -> MinusOp
-<system goal>  -> <program> $
+<system goal>  -> <program>$
