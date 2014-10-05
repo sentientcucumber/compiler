@@ -1,0 +1,246 @@
+#+TITLE: Assignment 5
+#+AUTHOR: Michael Hunsinger
+#+OPTIONS: toc:nil
+#+LATEX_CLASS: article
+#+LaTeX_CLASS_OPTIONS: [a4paper]
+#+LaTeX_HEADER: \usepackage{titling}
+#+LaTeX_HEADER: \addtolength{\topmargin}{-0.75in}
+#+LaTeX_HEADER: \addtolength{\textheight}{1.25in}
+#+LaTeX_HEADER: \addtolength{\oddsidemargin}{-.75in}
+#+LaTeX_HEADER: \addtolength{\evensidemargin}{-.75in}
+#+LaTeX_HEADER: \addtolength{\textwidth}{1.75in}
+#+LaTeX_HEADER: \usepackage{paralist}
+#+LaTeX_HEADER: \setlength\parindent{0pt}
+#+LaTeX_HEADER: \let\itemize\compactitem
+#+LaTeX_HEADER: \let\description\compactdesc
+#+LaTeX_HEADER: \let\enumerate\compactenum
+
+* Change log
+** [2014-09-08 Mon]
+   - Changed the Reader from the bufio package to the bytes package. The
+     bufio Reader is made to read streaming data and cannot perform seeks.
+   - Changed ~compiler.go~ to a ~scanner.go~, so it is more appropriately
+     named for future implementations.
+   - Added a ~parser.go~ file to implement a compiler's parser functionality.
+   - Added the ability to pass in the file on the command line.
+** [2014-09-15 Mon]
+   - Moved ~token.go~ to ~types.go~ and added support for Operator, ExprRec,
+     and ExprKind.
+   - Added semantic routines to the parser.
+   - When running the program, the user must add a second parameter for the
+     output file. For example, ~./main simple.micro generatedOutput~ will
+     create a file ~generatedOutput~ with all the assembly operations generated
+     during parsing.
+
+** [2014-09-21 Sun]
+   - Changed the scanner provide lexical analysis.
+   - Removed the ~parser.go~ file with the new scanner implementation.
+   - Added better checking for files passed in at execution.
+   - Tokens are no longer their own structs, they're now an ~int~.
+
+** [2014-09-28 Sun]
+   - Implemented a grammar analyzer
+
+* Go Documentation
+This implentation of the scanner uses Google's new language Go. There are
+instructions on how to setup Go, a description of the file structure, and
+how to compile and run the program.
+
+** Install Go
+   Download the appropriate installation from Google's Go website,
+   http://golang.org/doc/install, there is additional documentation located
+   on website as well.
+
+** Go's Workspace
+   Extract files from the tarball into the desired location. Inside the root
+   folder you will find four directories
+   - ~bin~ compiled executables, along with sample micro program files
+   - ~doc~ documentation
+   - ~pkg~ package objects (the compiler package is located in here)
+   - ~src~ source files
+     - ~compiler~ source files pertaining to the compiler package
+     - ~main~ source files pertaining to the main package (the driver file)
+
+   We must also setup the ~GOPATH~ to ensure proper compilation of the files.
+   Follow the steps below to set ~GOPATH~ in a *unix environment. 
+   #+BEGIN_SRC 
+   $ cd ../03
+   $ export GOPATH=$HOME/your/path/here/03
+   #+END_SRC
+   
+** Compiling Source Files
+   There are two steps to compile and the executable; building the compiler
+   package and then build the executable.
+   #+BEGIN_SRC 
+   $ cd ../03
+   $ go build compiler
+   $ go install main
+   #+END_SRC
+   Now there is an executable in the ~bin~ folder.
+
+** Running the Program
+   You can run the executable that was compiled. Ensure you are in the 
+   directory where the ~simple.micro~ file is located.
+   #+BEGIN_SRC 
+   $ cd ../03/bin
+   $ ./main simple.micro
+   #+END_SRC
+   This will run scan the ~simple.micro~ file. There is also a ~complex.micro~
+   file in the ~bin~ folder that uses some of the tokens found in the 
+   extended Micro language.
+
+* Sample Input and Output
+  The grammar analyzer reads a file defining the grammar and returns the
+  productions, symbols, terminal, non-terminal, right-hand side and left-hand
+  side of the grammar. Since it's reading and determines the symbols/terminal
+  symbols, issues are raised when a space doesn't separate two terminal symbols,
+  usually noticed when using "shorthand" notation. For example, "(<non-terminal>);" will
+  read two terminals, "(" and ");", even though the second should be split
+  up. Ensure proper formatting on the input.
+  
+  #+BEGIN_SRC 
+  microlang.txt input
+  <program>      -> begin <stmt list> end
+  <stmt list>    -> <statement> | <statement> <stmt list>
+  <statement>    -> Id := <expression>;
+  <statement>    -> read (<id list>) ;
+  <statement>    -> write (<expr list>) ;
+  <id list>      -> Id | Id , <id list>
+  <expr list>    -> <expression> | <expression>, <expr list>
+  <expression>   -> <primary> | <primary> <add op> <expression>
+  <primary>      -> (<expression>)
+  <primary>      -> Id
+  <primary>      -> IntLiteral
+  <add op>       -> PlusOp
+  <add op>       -> MinusOp
+  <system goal>  -> <program>$
+
+  microlang.txt output 
+  Productions ----------------------------
+  <statement>    -> write (<expr list>) ;
+  <expr list>    -> <expression> | <expression>, <expr list>
+  <add op>       -> PlusOp
+  <primary>      -> (<expression>)
+  <add op>       -> MinusOp
+  <system goal>  -> <program>$
+  <primary>      -> IntLiteral
+  <stmt list>    -> <statement> | <statement> <stmt list>
+  <statement>    -> Id := <expression>;
+  <statement>    -> read (<id list>) ;
+  <expression>   -> <primary> | <primary> <add op> <expression>
+  <program>      -> begin <stmt list> end
+  <id list>      -> Id | Id , <id list>
+  <primary>      -> Id
+  
+  Symbols ------------------------------
+  begin
+  $
+  end
+  ;
+  read
+  (
+  write
+  IntLiteral
+  Id
+  :=
+  ,
+  MinusOp
+  )
+  PlusOp
+  
+  Non-Terminals ------------------------
+  <program>
+  <statement>
+  <system goal>
+  <stmt list>
+  <expression>
+  <id list>
+  <expr list>
+  <primary>
+  <add op>
+  
+  Terminals ----------------------------
+  begin
+  $
+  end
+  ;
+  read
+  (
+  write
+  IntLiteral
+  Id
+  :=
+  ,
+  MinusOp
+  )
+  PlusOp
+  
+  RHS ----------------------------------
+  <statement> | <statement> <stmt list>
+  (<expression>)
+  MinusOp
+  write (<expr list>) ;
+  IntLiteral
+  begin <stmt list> end
+  Id | Id , <id list>
+  <primary> | <primary> <add op> <expression>
+  Id := <expression>;
+  read (<id list>) ;
+  <expression> | <expression>, <expr list>
+  Id
+  PlusOp
+  <program>$
+  
+  LHS ----------------------------------
+  <stmt list>
+  <statement>
+  <id list>
+  <program>
+  <expr list>
+  <expression>
+  <primary>
+  <add op>
+  <system goal>
+  #+END_SRC
+
+* Questions
+  *Eliminate any left-recursion or common left-factors in the following
+  grammars:*
+
+  |-----------+-----------|
+  | Grammar A | Grammar B |
+  |-----------+-----------|
+  | S -> 0A   | E -> Id T |
+  | S -> 1B   | E -> (E)  |
+  | A -> 0T   | T -> +E   |
+  | T -> B    | T -> *E   |
+  | T -> 1    |           |
+  | B -> 0S   |           |
+  | S -> 0    |           |
+  | S -> 1    |           |
+  |-----------+-----------|
+  
+  *Which of the following grammars are LL(1)? Explain why. Show First, Follow,*
+  *and Predict sets.*
+  
+  The first grammar is LL(1) because the two productions with the same left
+  hand side, A and B, each have disjoint Predict sets.
+
+  |-----------+-----------------+-----------------+-----------------|
+  | Grammar A | First Set       | Follow Set      | Predict Set     |
+  |-----------+-----------------+-----------------+-----------------|
+  | ~S~       | {a, b, \lambda} | {a, b, \lambda} | {a, b}          |
+  | ~A~       | {a, \lambda}    | {a, \lambda}    | {a)             |
+  | ~B~       | {b, \lambda}    | {b, \lambda}    | {b}             |
+  |-----------+-----------------+-----------------+-----------------|
+
+  The second grammar is also LL(1) because each production with the same left
+  hand side, S, B, and C, because each have disjoint Predict sets.
+
+  |-----------+--------------+------------+--------------|
+  | Grammar B | First Set    | Follow Set | Predict Set  |
+  |-----------+--------------+------------+--------------|
+  | ~S~       | {a, b, c, d} | {e}        | {a, b, c, d} |
+  | ~B~       | {b, c, d}    | {e}        | {b, c, d}    |
+  | ~C~       | {c, d}       | {e}        | {c, d}       |
+  |-----------+--------------+------------+--------------|
