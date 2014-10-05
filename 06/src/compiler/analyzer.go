@@ -149,3 +149,14 @@ func stripSymbols (s string) []string {
 
 	return strArr
 }
+
+// Returns the next symbol, whether terminal or nonterminal
+func firstTerm (s string) string {
+
+	strs := strings.Fields(s)
+	if len(strs) == 0 {
+		return ""
+	} else {
+		return strs[0]
+	}
+}

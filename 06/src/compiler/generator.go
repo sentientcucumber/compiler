@@ -6,16 +6,29 @@
 package compiler
 
 import (
+	"fmt"
 	"strings"
 )
+
+var (
+	g = Grammar {
+		terminals:     terminals,
+		nonterminals:  nonterminals,
+		productions:   productions,
+		rhs:           rhs,
+		lhs:           lhs,
+	}
+
+	FirstSet = make(map[string][]string, 0)
+	derivesLambda = pullVocabulary(g)
+)
+
 
 // Mark which parts of a vocabulary (terminals and nonterminals) from a grammar
 // can produce lambda. If reading an LL(1) grammar, the grammar should be
 // formatted that the LHS produces nothing instead of nil or a lambda unicode
 // (e.g. "<lhs> -> ")
 func MarkLambda (g Grammar) MarkedVocabulary {
-
-	derivesLambda := pullVocabulary(g)
 	changes := true
 	
 	for k, _ := range derivesLambda.vocabulary {
@@ -47,59 +60,93 @@ func MarkLambda (g Grammar) MarkedVocabulary {
 // Determines the first terminal or lambda for a given set of symbols,
 // terminals and nonterminals
 func computeFirst (s string) (result TermSet) {
+	fmt.Printf("compute first s: %v\n", s)
 	strs := strings.Fields(s)
 
 	if k := len(strs); k == 0 {
-		result = TermSet {}
+		result.symbols = append(result.symbols, "")
 	} else {
-		result.symbols = append(result.symbols, firstSet(strs[0]))
-		i := 0
+		fmt.Printf("compute first FirstSet[strs[0]]: '%v'\n", FirstSet[strs[0]])
+		t := remove(FirstSet[strs[0]], "") // Remove lambda from FirstSet
 
-		for i < k && firstSet(strs[i]) == "" {
+		result.symbols = t
+		i := 0
+		
+		for b, _ := contains(FirstSet[strs[i]], ""); i < k && b; {
 			i++
-			result.symbols = append(result.symbols, firstSet(strs[i]))
+			t = remove(FirstSet[strs[i]], "")
+
+			fmt.Printf("result.symbols before %v\n", result.symbols)
+			result.symbols = append(result.symbols, t...)
+			fmt.Printf("result.symbols after %v\n", result.symbols)
 		}
 
-		if i == k && firstSet(strs[k]) == "" {
-			result.symbols = append(result.symbols, "lambda")
+		if b, _ := contains(FirstSet[strs[k - 1]], ""); i == k - 1 && b {
+			result.symbols = append(result.symbols, "")
+		}
+	}
+	
+	return
+}
+
+
+// Use in conjunction with ComputeFirst to fill the FirstSet
+func FillFirstSet() {
+	derivesLambda := MarkedVocabulary { nonterminals }
+
+	for A := range g.nonterminals {
+		if derivesLambda.vocabulary[A] {
+			FirstSet[A] = append(FirstSet[A], "")
+		} else {
+			// add an empty set, so add nothing?
+		}
+	}
+
+	for a := range g.terminals {
+		FirstSet[a] = append(FirstSet[a], a)
+
+		for A := range g.nonterminals {
+			for p := range g.productions {
+				rhs := stripRhs(p)
+
+				if firstTerm(rhs) == a { // first is the first symbol of a production
+					FirstSet[A] = append(FirstSet[A], a);
+				}
+			}
+		}
+	}
+
+	for p := range g.productions {
+		lhs := stripLhs(p)
+		rhs := stripRhs(p)
+		first := computeFirst(rhs).symbols
+
+		FirstSet[lhs] = append(FirstSet[lhs], first...)
+	}
+}
+
+func contains(a []string, v string) (found bool, ind int) {
+	found = false
+
+	for i, e := range a {
+		if e == v {
+			found = true
+			ind = i
+			break
 		}
 	}
 
 	return
 }
 
-// Use in conjunction with ComputeFirst to fill the FirstSet
-func fillFirstSet() {
-	for A := range nonterminals {
-		if derivesLambda(A) {
-			firstSet(A) = ""
-		} else {
-			firstSet(A) = "" 	// not sure what this should be 
-		}
+func remove(a []string, s string) []string {
+
+	if b, i := contains(a, s); b {
+		copy(a[i:], a[i+1:])
+		a = a[:len(a) - 1]
 	}
 
-	for a := range terminals {
-		firstSet(a) := a
-
-		for A := range nonterminals {
-			if first(rhs) == a { // first is the first symbol of a production
-				firstSet(A) := firstSet(A) + a;
-			}
-		}
-	}
-
-	for p := range productions {
-		firstSet(stripLhs(p)) := firstSet(stripLhs) + computeFirst(stripRhs(p))
-	}							// exit when no changes
-}
-
-// Returns the first set of a given string???
-func firstSet (s string) string {
-	if len(s) == 0 {
-		return ""
-	} else {
-		return s
-	}
+	return a
 }
 
 // Pull the vocabulary from a grammar

@@ -9,28 +9,26 @@ package main
 import (
 	"fmt"
 	"compiler"
-	// "io/ioutil"
-	// "os"
-	// "bytes"
+	"io/ioutil"
+	"os"
+	"bytes"
 )
 
 func main() {
-	// if len(os.Args) < 2 {
-	// 	fmt.Printf("You must pass in a micro file on the command line\n")
-	// 	os.Exit(1)
-	// }
+	if len(os.Args) < 2 {
+		fmt.Printf("You must pass in a micro file on the command line\n")
+		os.Exit(1)
+	}
 
-	// src, err := ioutil.ReadFile(os.Args[1])
-	// if err != nil {
-	// 	fmt.Printf("'%s' is not a valid file name\n", os.Args[1])
-	// }
+	src, err := ioutil.ReadFile(os.Args[1])
+	if err != nil {
+		fmt.Printf("'%s' is not a valid file name\n", os.Args[1])
+	}
 
-	// reader := bytes.NewReader(src)
+	reader := bytes.NewReader(src)
 
-	// a := compiler.Analyzer { Reader: *reader }
-	// compiler.MarkLambda(a.ReadGrammar())
-
-	// x := compiler.ComputeFirst("");
-	x := compiler.ComputeFirst("<statement> <statement tail>");
-	fmt.Println(x)
+	a := compiler.Analyzer { Reader: *reader }
+	compiler.MarkLambda(a.ReadGrammar())
+	compiler.FillFirstSet()
+	fmt.Printf("%v\n", compiler.FirstSet)
 }
