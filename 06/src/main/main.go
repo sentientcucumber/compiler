@@ -30,5 +30,4 @@ func main() {
 	a := compiler.Analyzer { Reader: *reader }
 	compiler.MarkLambda(a.ReadGrammar())
 	compiler.FillFirstSet()
-	fmt.Printf("%v\n", compiler.FirstSet)
 }

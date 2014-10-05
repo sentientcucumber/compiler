@@ -6,7 +6,7 @@
 package compiler
 
 import (
-	"fmt"
+	// "fmt"
 	"strings"
 )
 
@@ -60,13 +60,11 @@ func MarkLambda (g Grammar) MarkedVocabulary {
 // Determines the first terminal or lambda for a given set of symbols,
 // terminals and nonterminals
 func computeFirst (s string) (result TermSet) {
-	fmt.Printf("compute first s: %v\n", s)
 	strs := strings.Fields(s)
 
 	if k := len(strs); k == 0 {
 		result.symbols = append(result.symbols, "")
 	} else {
-		fmt.Printf("compute first FirstSet[strs[0]]: '%v'\n", FirstSet[strs[0]])
 		t := remove(FirstSet[strs[0]], "") // Remove lambda from FirstSet
 
 		result.symbols = t
@@ -76,9 +74,7 @@ func computeFirst (s string) (result TermSet) {
 			i++
 			t = remove(FirstSet[strs[i]], "")
 
-			fmt.Printf("result.symbols before %v\n", result.symbols)
 			result.symbols = append(result.symbols, t...)
-			fmt.Printf("result.symbols after %v\n", result.symbols)
 		}
 
 		if b, _ := contains(FirstSet[strs[k - 1]], ""); i == k - 1 && b {
@@ -92,24 +88,23 @@ func computeFirst (s string) (result TermSet) {
 
 // Use in conjunction with ComputeFirst to fill the FirstSet
 func FillFirstSet() {
-	derivesLambda := MarkedVocabulary { nonterminals }
-
 	for A := range g.nonterminals {
 		if derivesLambda.vocabulary[A] {
-			FirstSet[A] = append(FirstSet[A], "")
+			FirstSet[A] = []string { "" }
 		} else {
-			// add an empty set, so add nothing?
+			FirstSet[A] = make([]string, 0)
 		}
 	}
 
 	for a := range g.terminals {
-		FirstSet[a] = append(FirstSet[a], a)
+		FirstSet[a] = []string { a }
 
 		for A := range g.nonterminals {
 			for p := range g.productions {
 				rhs := stripRhs(p)
+				lhs := stripLhs(p)
 
-				if firstTerm(rhs) == a { // first is the first symbol of a production
+				if firstTerm(rhs) == a && lhs == A {
 					FirstSet[A] = append(FirstSet[A], a);
 				}
 			}
@@ -122,9 +117,10 @@ func FillFirstSet() {
 		first := computeFirst(rhs).symbols
 
 		FirstSet[lhs] = append(FirstSet[lhs], first...)
-	}
+	}							// Exit when changes
 }
 
+// Checks to see if a string exists in an array of strings
 func contains(a []string, v string) (found bool, ind int) {
 	found = false
 
@@ -139,6 +135,7 @@ func contains(a []string, v string) (found bool, ind int) {
 	return
 }
 
+// Removes a string from an array of strings
 func remove(a []string, s string) []string {
 
 	if b, i := contains(a, s); b {
