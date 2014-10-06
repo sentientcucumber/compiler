@@ -1,4 +1,4 @@
-#+TITLE: Assignment 5
+#+TITLE: Assignment 6
 #+AUTHOR: Michael Hunsinger
 #+OPTIONS: toc:nil
 #+LATEX_CLASS: article
@@ -41,6 +41,13 @@
 ** [2014-09-28 Sun]
    - Implemented a grammar analyzer
 
+** [2014-10-05 Sun]
+   - This current implementation doesn't work correctly. There are issues when
+     using maps for the sets. Since maps aren't read in a consistent order,
+     answers will vary between executions. MarkLambda, ComputeFirst,
+     FillFirstSet all work correctly, but will need to be reworked when changes
+     are made. FillFollowSet does not work correctly. May have something to do
+     with the maps.
 * Go Documentation
 This implentation of the scanner uses Google's new language Go. There are
 instructions on how to setup Go, a description of the file structure, and
@@ -90,119 +97,75 @@ how to compile and run the program.
    extended Micro language.
 
 * Sample Input and Output
-  The grammar analyzer reads a file defining the grammar and returns the
-  productions, symbols, terminal, non-terminal, right-hand side and left-hand
-  side of the grammar. Since it's reading and determines the symbols/terminal
-  symbols, issues are raised when a space doesn't separate two terminal symbols,
-  usually noticed when using "shorthand" notation. For example, "(<non-terminal>);" will
-  read two terminals, "(" and ");", even though the second should be split
-  up. Ensure proper formatting on the input.
+  See change log for details about this implementation as it doesn't work
+  correctly. 
   
-  #+BEGIN_SRC 
-  microlang.txt input
-  <program>      -> begin <stmt list> end
-  <stmt list>    -> <statement> | <statement> <stmt list>
-  <statement>    -> Id := <expression>;
-  <statement>    -> read (<id list>) ;
-  <statement>    -> write (<expr list>) ;
-  <id list>      -> Id | Id , <id list>
-  <expr list>    -> <expression> | <expression>, <expr list>
-  <expression>   -> <primary> | <primary> <add op> <expression>
-  <primary>      -> (<expression>)
-  <primary>      -> Id
-  <primary>      -> IntLiteral
-  <add op>       -> PlusOp
-  <add op>       -> MinusOp
-  <system goal>  -> <program>$
-
-  microlang.txt output 
-  Productions ----------------------------
-  <statement>    -> write (<expr list>) ;
-  <expr list>    -> <expression> | <expression>, <expr list>
-  <add op>       -> PlusOp
-  <primary>      -> (<expression>)
-  <add op>       -> MinusOp
-  <system goal>  -> <program>$
-  <primary>      -> IntLiteral
-  <stmt list>    -> <statement> | <statement> <stmt list>
-  <statement>    -> Id := <expression>;
-  <statement>    -> read (<id list>) ;
-  <expression>   -> <primary> | <primary> <add op> <expression>
-  <program>      -> begin <stmt list> end
-  <id list>      -> Id | Id , <id list>
-  <primary>      -> Id
+  #+BEGIN_SRC
+  Input for the problem from Assignment 5, 2b
+  <S> -> a <S> e
+  <S> -> <B>
+  <B> -> b <B> e
+  <B> -> <C>
+  <C> -> c <C> e
+  <C> -> d
   
-  Symbols ------------------------------
-  begin
-  $
-  end
-  ;
-  read
-  (
-  write
-  IntLiteral
-  Id
-  :=
-  ,
-  MinusOp
-  )
-  PlusOp
+  Output
+  First ( <B> )  = [b]
+  First ( b <B> e )  = []
+  First ( <C> )  = [c d]
+  First ( c <C> e )  = []
+  First ( d )  = [d]
+  First ( a <S> e )  = []
   
-  Non-Terminals ------------------------
-  <program>
-  <statement>
-  <system goal>
-  <stmt list>
-  <expression>
-  <id list>
-  <expr list>
-  <primary>
-  <add op>
+  Input for Micro language in standard form
+  <program>         -> begin <stmt list> end
+  <stmt list>       -> <statement> <statement tail>
+  <statement tail>  -> <stmt list>
+  <statement tail>  ->
+  <statement>       -> Id := <expression> ;
+  <statement>       -> read ( <id list> ) ;
+  <statement>       -> write ( <expr list> ) ;
+  <id list>         -> Id <id tail>
+  <id tail>         -> , Id <id tail>
+  <id tail>         ->
+  <expr list>       -> <expression> <expression tail>
+  <expression tail> -> , <expr list>
+  <expression tail> ->
+  <expression>      -> <primary> <primary tail>
+  <primary tail>    -> <add op> <expression>
+  <primary tail>    ->
+  <primary>         -> ( <expression> )
+  <primary>         -> Id
+  <primary>         -> IntLiteral
+  <add op>          -> +
+  <add op>          -> -
+  <system goal>     -> <program> $
   
-  Terminals ----------------------------
-  begin
-  $
-  end
-  ;
-  read
-  (
-  write
-  IntLiteral
-  Id
-  :=
-  ,
-  MinusOp
-  )
-  PlusOp
-  
-  RHS ----------------------------------
-  <statement> | <statement> <stmt list>
-  (<expression>)
-  MinusOp
-  write (<expr list>) ;
-  IntLiteral
-  begin <stmt list> end
-  Id | Id , <id list>
-  <primary> | <primary> <add op> <expression>
-  Id := <expression>;
-  read (<id list>) ;
-  <expression> | <expression>, <expr list>
-  Id
-  PlusOp
-  <program>$
-  
-  LHS ----------------------------------
-  <stmt list>
-  <statement>
-  <id list>
-  <program>
-  <expr list>
-  <expression>
-  <primary>
-  <add op>
-  <system goal>
+  Output
+  First ( read ( <id list> ) ; )  = []
+  First (  )  = []
+  First (  )  = []
+  First ( ( <expression> ) )  = []
+  First ( <program> $ )  = []
+  First ( - )  = [-]
+  First ( <statement> <statement tail> )  = []
+  First ( Id := <expression> ; )  = []
+  First ( write ( <expr list> ) ; )  = []
+  First ( Id <id tail> )  = []
+  First ( Id )  = [Id]
+  First ( <add op> <expression> )  = []
+  First ( IntLiteral )  = [IntLiteral]
+  First (  )  = []
+  First ( , Id <id tail> )  = []
+  First (  )  = []
+  First ( <expression> <expression tail> )  = []
+  First ( , <expr list> )  = []
+  First ( begin <stmt list> end )  = []
+  First ( <stmt list> )  = [read write]
+  First ( <primary> <primary tail> )  = []
+  First ( + )  = [+]
   #+END_SRC
-
+  
 * Questions
   *Eliminate any left-recursion or common left-factors in the following
   grammars:*

@@ -152,11 +152,51 @@ func stripSymbols (s string) []string {
 
 // Returns the next symbol, whether terminal or nonterminal
 func firstTerm (s string) string {
-
 	strs := strings.Fields(s)
+
 	if len(strs) == 0 {
 		return ""
 	} else {
 		return strs[0]
+	}
+}
+
+// Returns an array of nonterminals in the string
+func stripNonterminals (s string) []string {
+	strs := make([]string, 0)
+
+	for strings.Contains(s, "<") {
+		start := strings.Index(s, "<")
+		end   := strings.Index(s, ">") + 1
+
+		strs = append(strs, s[start:end])
+		s = s[end:]
+	}
+
+	return strs
+}
+
+// Returns whether or not the last symbol is a terminal, if it is, symbol is
+// also returned
+func lastTerm (s string) (bool, string) {
+	s = strings.TrimSpace(s)
+	re := regexp.MustCompile(">$")
+	nt := regexp.MustCompile("<[a-zA-Z\\s]*>")
+
+	if re.MatchString(s) || s == "" {
+		return false, s
+	} else if nt.MatchString(s) {
+		strs := strings.Fields(s)
+		var nontermInd int
+
+		for i, e := range strs {
+			if re.MatchString(e) {
+				nontermInd  = i
+			}
+		}
+
+		return true, strs[nontermInd + 1]
+	} else {
+		return true, s
 	}
 }

@@ -6,7 +6,7 @@
 package compiler
 
 import (
-	// "fmt"
+	"fmt"
 	"strings"
 )
 
@@ -19,16 +19,41 @@ var (
 		lhs:           lhs,
 	}
 
-	FirstSet = make(map[string][]string, 0)
-	derivesLambda = pullVocabulary(g)
+	FirstSet        = make(map[string][]string, 0)
+	FollowSet       = make(map[string][]string, 0)
+	derivesLambda   = pullVocabulary(g)
 )
 
+// Generates a predict set
+func Predict() {
+	derivesLambda = markLambda(g)
+	fillFirstSet()
+	fillFollowSet()
+
+	for p := range g.productions {
+		PredictSet := make([]string, 0)
+
+		rhs := stripRhs(p)
+		lhs := stripLhs(p)
+		
+		PredictSet = append(PredictSet, FirstSet[rhs]...)
+		fmt.Printf("First ( %s ) ", rhs)
+
+		if b, _ := contains(FirstSet[rhs], ""); b {
+			t := remove(FollowSet[lhs], "")
+			PredictSet = append(PredictSet, t...)
+			fmt.Printf("∪ Follow ( %s ) - λ", )
+		}
+		
+		fmt.Printf(" = %s\n", PredictSet)
+	}
+}
 
 // Mark which parts of a vocabulary (terminals and nonterminals) from a grammar
 // can produce lambda. If reading an LL(1) grammar, the grammar should be
 // formatted that the LHS produces nothing instead of nil or a lambda unicode
 // (e.g. "<lhs> -> ")
-func MarkLambda (g Grammar) MarkedVocabulary {
+func markLambda (g Grammar) MarkedVocabulary {
 	changes := true
 	
 	for k, _ := range derivesLambda.vocabulary {
@@ -81,13 +106,13 @@ func computeFirst (s string) (result TermSet) {
 			result.symbols = append(result.symbols, "")
 		}
 	}
-	
+	// fmt.Println(result.symbols)
 	return
 }
 
 
-// Use in conjunction with ComputeFirst to fill the FirstSet
-func FillFirstSet() {
+// Fill the FirstSet
+func fillFirstSet() {
 	for A := range g.nonterminals {
 		if derivesLambda.vocabulary[A] {
 			FirstSet[A] = []string { "" }
@@ -105,7 +130,9 @@ func FillFirstSet() {
 				lhs := stripLhs(p)
 
 				if firstTerm(rhs) == a && lhs == A {
-					FirstSet[A] = append(FirstSet[A], a);
+					if b, _ := contains(FirstSet[A], a); b {
+						FirstSet[A] = append(FirstSet[A], a);
+					}
 				}
 			}
 		}
@@ -115,9 +142,37 @@ func FillFirstSet() {
 		lhs := stripLhs(p)
 		rhs := stripRhs(p)
 		first := computeFirst(rhs).symbols
-
+			
 		FirstSet[lhs] = append(FirstSet[lhs], first...)
-	}							// Exit when changes
+	}
+}
+
+
+// Fill the FollowSet
+func fillFollowSet() {
+	for A := range g.nonterminals {
+		FollowSet[A] = make([]string, 0)
+	}
+
+	// TODO need to make this changeable
+	FollowSet["<system goal>"] = []string { "" }
+
+	for p := range g.productions {
+		rhs := stripRhs(p)
+		lhs := stripLhs(p)
+
+		// if the production follows the form of A -> xBy
+		if b, s := lastTerm(rhs); b {
+			for _, B := range stripNonterminals(rhs) {
+				t := remove(computeFirst(s).symbols, "")
+				FollowSet[B] = append(FollowSet[B], t...)
+				
+				if b, _ := contains(computeFirst(s).symbols, ""); b {
+					FollowSet[B] = append(FollowSet[B], FollowSet[lhs]...)
+				}
+			}
+		}
+	}
 }
 
 // Checks to see if a string exists in an array of strings

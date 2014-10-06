@@ -28,6 +28,6 @@ func main() {
 	reader := bytes.NewReader(src)
 
 	a := compiler.Analyzer { Reader: *reader }
-	compiler.MarkLambda(a.ReadGrammar())
-	compiler.FillFirstSet()
+	a.ReadGrammar()
+	compiler.Predict()
 }
