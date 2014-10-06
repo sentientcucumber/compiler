@@ -166,44 +166,4 @@ how to compile and run the program.
   First ( + )  = [+]
   #+END_SRC
   
-* Questions
-  *Eliminate any left-recursion or common left-factors in the following
-  grammars:*
 
-  |-----------+-----------|
-  | Grammar A | Grammar B |
-  |-----------+-----------|
-  | S -> 0A   | E -> Id T |
-  | S -> 1B   | E -> (E)  |
-  | A -> 0T   | T -> +E   |
-  | T -> B    | T -> *E   |
-  | T -> 1    |           |
-  | B -> 0S   |           |
-  | S -> 0    |           |
-  | S -> 1    |           |
-  |-----------+-----------|
-  
-  *Which of the following grammars are LL(1)? Explain why. Show First, Follow,*
-  *and Predict sets.*
-  
-  The first grammar is LL(1) because the two productions with the same left
-  hand side, A and B, each have disjoint Predict sets.
-
-  |-----------+-----------------+-----------------+-----------------|
-  | Grammar A | First Set       | Follow Set      | Predict Set     |
-  |-----------+-----------------+-----------------+-----------------|
-  | ~S~       | {a, b, \lambda} | {a, b, \lambda} | {a, b}          |
-  | ~A~       | {a, \lambda}    | {a, \lambda}    | {a)             |
-  | ~B~       | {b, \lambda}    | {b, \lambda}    | {b}             |
-  |-----------+-----------------+-----------------+-----------------|
-
-  The second grammar is also LL(1) because each production with the same left
-  hand side, S, B, and C, because each have disjoint Predict sets.
-
-  |-----------+--------------+------------+--------------|
-  | Grammar B | First Set    | Follow Set | Predict Set  |
-  |-----------+--------------+------------+--------------|
-  | ~S~       | {a, b, c, d} | {e}        | {a, b, c, d} |
-  | ~B~       | {b, c, d}    | {e}        | {b, c, d}    |
-  | ~C~       | {c, d}       | {e}        | {c, d}       |
-  |-----------+--------------+------------+--------------|
