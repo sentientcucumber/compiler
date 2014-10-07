@@ -151,26 +151,26 @@ func stripSymbols (s string) []string {
 }
 
 // Returns the next symbol, whether terminal or nonterminal
-func firstTerm (s string) string {
+func firstTerm (s string) (bool, string) {
 	start := regexp.MustCompile("^<")
 	end   := regexp.MustCompile(">$")
 	strs  := strings.Fields(s)
 
 	if len(strs) == 0 {
-		return ""
+		return false, ""
 	}
 
 	for _, e := range strs {
 		if !start.MatchString(e) && !end.MatchString(e) {
-			return e
+			return true, e
 		}
 	}
 
-	return ""
+	return false, ""
 }
 
 // Returns an array of nonterminals in the string
-func stripNonterminals (s string) []string {
+func stripNonTerminals (s string) []string {
 	strs := make([]string, 0)
 
 	for strings.Contains(s, "<") {
@@ -188,23 +188,28 @@ func stripNonterminals (s string) []string {
 // also returned
 func lastTerm (s string) (bool, string) {
 	s = strings.TrimSpace(s)
-	re := regexp.MustCompile(">$")
+	start := regexp.MustCompile("^<")
+	end := regexp.MustCompile(">$")
 	nt := regexp.MustCompile("<[a-zA-Z\\s]*>")
-
-	if re.MatchString(s) || s == "" {
+	
+	if len(s) == 0 {
 		return false, s
+
+	} else if end.MatchString(s) || start.MatchString(s) {
+		return false, s
+
 	} else if nt.MatchString(s) {
 		strs := strings.Fields(s)
 		var nontermInd int
 
 		for i, e := range strs {
-			if re.MatchString(e) {
+			if end.MatchString(e) {
 				nontermInd  = i
 			}
 		}
 
 		return true, strs[nontermInd + 1]
 	} else {
-		return true, s
+		return false, ""
 	}
 }

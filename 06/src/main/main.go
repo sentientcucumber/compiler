@@ -29,5 +29,6 @@ func main() {
 
 	a := compiler.Analyzer { Reader: *reader }
 	a.ReadGrammar()
+	compiler.FillFollowSet()
 	// compiler.Predict()
 }

@@ -39,16 +39,16 @@ func Predict() {
 		lhs := stripLhs(p)
 
 		if rhs != "" {		
-		PredictSet = append(PredictSet, FirstSet[rhs]...)
-		fmt.Printf("First ( %s )", rhs)
+			PredictSet = append(PredictSet, FirstSet[rhs]...)
+			fmt.Printf("First ( %s )", rhs)
 
-		if b, _ := contains(FirstSet[rhs], ""); b {
-			t := remove(FollowSet[lhs], "")
-			PredictSet = append(PredictSet, t...)
-			fmt.Printf("∪ Follow ( %s ) - λ", )
-		}
-		
-		fmt.Printf(" = %s\n", PredictSet)
+			if b, _ := contains(FirstSet[rhs], ""); b {
+				t := remove(FollowSet[lhs], "")
+				PredictSet = append(PredictSet, t...)
+				fmt.Printf("∪ Follow ( %s ) - λ", )
+			}
+			
+			fmt.Printf(" = %s\n", PredictSet)
 		}
 	}
 }
@@ -112,7 +112,6 @@ func ComputeFirst (s string) (result TermSet) {
 		}
 	}
 	
-	fmt.Println(result)
 	return
 }
 
@@ -123,7 +122,7 @@ func FillFirstSet() {
 
 	for A := range g.nonterminals {
 		if derivesLambda[A] {
-			FirstSet[A] = []string { " " }
+			FirstSet[A] = []string { "" }
 		} else {
 			FirstSet[A] = make([]string, 0)
 		}
@@ -137,7 +136,8 @@ func FillFirstSet() {
 				rhs := stripRhs(p)
 				lhs := stripLhs(p)
 
-				if firstTerm(rhs) == a && lhs == A {
+				// Extra bit to make sure this is a "set"
+				if _, s := firstTerm(rhs); s == a && lhs == A {
 					if b, _ := contains(FirstSet[A], a); !b {
 						FirstSet[A] = append(FirstSet[A], a);
 					}
@@ -146,12 +146,14 @@ func FillFirstSet() {
 		}
 	}
 
+	// TODO this is poor programming... 
 	for i := 0; i < 2; i++ {
 		for p := range g.productions {
 			lhs := stripLhs(p)
 			rhs := stripRhs(p)
 			first := ComputeFirst(rhs)
 
+			// Extra bit to make sure this is a "set"
 			for i, _ := range first {
 				if b, _ := contains(FirstSet[lhs], first[i]); !b {
 					FirstSet[lhs] = append(FirstSet[lhs], first[i])
@@ -164,29 +166,45 @@ func FillFirstSet() {
 
 // Fill the FollowSet
 func FillFollowSet() {
+	MarkLambda(g)
+	FillFirstSet()
+
 	for A := range g.nonterminals {
 		FollowSet[A] = make([]string, 0)
 	}
 
-	// TODO need to make this changeable
-	FollowSet["<system goal>"] = []string { "" }
+	// TODO this is also poor programming...
+	FollowSet["<systemgoal>"] = []string { "" }
 
+	for i := 0; i < 2; i++ {
 	for p := range g.productions {
 		rhs := stripRhs(p)
 		lhs := stripLhs(p)
+		a := stripNonTerminals(rhs)
 
-		// if the production follows the form of A -> xBy
-		if b, s := lastTerm(rhs); b {
-			for _, B := range stripNonterminals(rhs) {
-				t := remove(ComputeFirst(s), "")
-				FollowSet[B] = append(FollowSet[B], t...)
-				
-				if b, _ := contains(ComputeFirst(s), ""); b {
-					FollowSet[B] = append(FollowSet[B], FollowSet[lhs]...)
+		for _, B := range a {
+			next := nextSymbol(rhs, B)
+			t := remove(ComputeFirst(next), "")
+
+			// fmt.Printf("rhs %s, t %v, next %s\n", rhs, t, next)
+			for _, s := range t {
+				if x, _ := contains(FollowSet[B], s); !x {
+					FollowSet[B] = append(FollowSet[B], s)
+				}
+			}
+			
+			first := ComputeFirst(next)
+
+			for _, s := range first {
+				if b, _ := contains(first, ""); !b {
+					FirstSet[lhs] = append(FirstSet[lhs], s)
 				}
 			}
 		}
 	}
+	}
+
+	printSet(FollowSet)
 }
 
 // Checks to see if a string exists in an array of strings
@@ -260,10 +278,16 @@ func printSet(m map[string][]string) {
 	}
 }
 
-// Remove duplicates from a "set"
-// func removeDups(a []string) []string {
+// Grabs the next symbol
+func nextSymbol(s, v string) string {
 
-// 	for i, e := range a {
-		
-// 	}
-// }
+	strs := strings.Fields(s)
+
+	if b, i := contains(strs, v); b {
+		if i + 1 < len(strs) {
+			return strs[i + 1]
+		}
+	}
+
+	return ""
+}
