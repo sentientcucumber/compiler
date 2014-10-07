@@ -4,9 +4,9 @@
 
 package compiler
 
-type MarkedVocabulary struct {
-	vocabulary    map[string]bool
-}
+type MarkedVocabulary map[string]bool
+
+type TermSet []string
 
 type Grammar struct {
 	terminals     map[string]bool
@@ -14,8 +14,4 @@ type Grammar struct {
 	productions   map[string]bool
 	rhs           map[string]bool
 	lhs           map[string]bool
-}
-
-type TermSet struct {
-	symbols       []string
 }

@@ -8,6 +8,7 @@ package compiler
 import (
 	"fmt"
 	"strings"
+	"sort"
 )
 
 var (
@@ -21,23 +22,25 @@ var (
 
 	FirstSet        = make(map[string][]string, 0)
 	FollowSet       = make(map[string][]string, 0)
-	derivesLambda   = pullVocabulary(g)
+	derivesLambda   MarkedVocabulary
 )
 
 // Generates a predict set
 func Predict() {
-	derivesLambda = markLambda(g)
-	fillFirstSet()
-	fillFollowSet()
+	MarkLambda(g)
+	FillFirstSet()
+	FillFollowSet()
 
 	for p := range g.productions {
+
 		PredictSet := make([]string, 0)
 
 		rhs := stripRhs(p)
 		lhs := stripLhs(p)
-		
+
+		if rhs != "" {		
 		PredictSet = append(PredictSet, FirstSet[rhs]...)
-		fmt.Printf("First ( %s ) ", rhs)
+		fmt.Printf("First ( %s )", rhs)
 
 		if b, _ := contains(FirstSet[rhs], ""); b {
 			t := remove(FollowSet[lhs], "")
@@ -46,6 +49,7 @@ func Predict() {
 		}
 		
 		fmt.Printf(" = %s\n", PredictSet)
+		}
 	}
 }
 
@@ -53,11 +57,12 @@ func Predict() {
 // can produce lambda. If reading an LL(1) grammar, the grammar should be
 // formatted that the LHS produces nothing instead of nil or a lambda unicode
 // (e.g. "<lhs> -> ")
-func markLambda (g Grammar) MarkedVocabulary {
+func MarkLambda (g Grammar) MarkedVocabulary {
 	changes := true
+	derivesLambda = pullVocabulary(g)
 	
-	for k, _ := range derivesLambda.vocabulary {
-		derivesLambda.vocabulary[k] = false
+	for k, _ := range derivesLambda {
+		derivesLambda[k] = false
 	}
 
 	for changes {
@@ -68,13 +73,13 @@ func markLambda (g Grammar) MarkedVocabulary {
 			rhs := stripRhs(p)
 			
 			for _, s := range stripSymbols(rhs) {
-				rhsDerivesLambda = rhsDerivesLambda && derivesLambda.vocabulary[s];
+				rhsDerivesLambda = rhsDerivesLambda && derivesLambda[s];
 			}
 
 			lhs := stripLhs(p)
-			if rhsDerivesLambda && !derivesLambda.vocabulary[lhs] {
+			if rhsDerivesLambda && !derivesLambda[lhs] {
 				changes = true
-				derivesLambda.vocabulary[lhs] = true
+				derivesLambda[lhs] = true
 			}
 		}
 	}
@@ -84,38 +89,41 @@ func markLambda (g Grammar) MarkedVocabulary {
 
 // Determines the first terminal or lambda for a given set of symbols,
 // terminals and nonterminals
-func computeFirst (s string) (result TermSet) {
+func ComputeFirst (s string) (result TermSet) {
 	strs := strings.Fields(s)
 
 	if k := len(strs); k == 0 {
-		result.symbols = append(result.symbols, "")
+		result = append(result, "")
 	} else {
 		t := remove(FirstSet[strs[0]], "") // Remove lambda from FirstSet
 
-		result.symbols = t
+		result = t
 		i := 0
 		
 		for b, _ := contains(FirstSet[strs[i]], ""); i < k && b; {
 			i++
 			t = remove(FirstSet[strs[i]], "")
 
-			result.symbols = append(result.symbols, t...)
+			result = append(result, t...)
 		}
 
 		if b, _ := contains(FirstSet[strs[k - 1]], ""); i == k - 1 && b {
-			result.symbols = append(result.symbols, "")
+			result = append(result, "")
 		}
 	}
-	// fmt.Println(result.symbols)
+	
+	fmt.Println(result)
 	return
 }
 
 
 // Fill the FirstSet
-func fillFirstSet() {
+func FillFirstSet() {
+	MarkLambda(g)
+
 	for A := range g.nonterminals {
-		if derivesLambda.vocabulary[A] {
-			FirstSet[A] = []string { "" }
+		if derivesLambda[A] {
+			FirstSet[A] = []string { " " }
 		} else {
 			FirstSet[A] = make([]string, 0)
 		}
@@ -130,7 +138,7 @@ func fillFirstSet() {
 				lhs := stripLhs(p)
 
 				if firstTerm(rhs) == a && lhs == A {
-					if b, _ := contains(FirstSet[A], a); b {
+					if b, _ := contains(FirstSet[A], a); !b {
 						FirstSet[A] = append(FirstSet[A], a);
 					}
 				}
@@ -138,18 +146,24 @@ func fillFirstSet() {
 		}
 	}
 
-	for p := range g.productions {
-		lhs := stripLhs(p)
-		rhs := stripRhs(p)
-		first := computeFirst(rhs).symbols
-			
-		FirstSet[lhs] = append(FirstSet[lhs], first...)
+	for i := 0; i < 2; i++ {
+		for p := range g.productions {
+			lhs := stripLhs(p)
+			rhs := stripRhs(p)
+			first := ComputeFirst(rhs)
+
+			for i, _ := range first {
+				if b, _ := contains(FirstSet[lhs], first[i]); !b {
+					FirstSet[lhs] = append(FirstSet[lhs], first[i])
+				}
+			}
+		}
 	}
 }
 
 
 // Fill the FollowSet
-func fillFollowSet() {
+func FillFollowSet() {
 	for A := range g.nonterminals {
 		FollowSet[A] = make([]string, 0)
 	}
@@ -164,10 +178,10 @@ func fillFollowSet() {
 		// if the production follows the form of A -> xBy
 		if b, s := lastTerm(rhs); b {
 			for _, B := range stripNonterminals(rhs) {
-				t := remove(computeFirst(s).symbols, "")
+				t := remove(ComputeFirst(s), "")
 				FollowSet[B] = append(FollowSet[B], t...)
 				
-				if b, _ := contains(computeFirst(s).symbols, ""); b {
+				if b, _ := contains(ComputeFirst(s), ""); b {
 					FollowSet[B] = append(FollowSet[B], FollowSet[lhs]...)
 				}
 			}
@@ -202,8 +216,8 @@ func remove(a []string, s string) []string {
 }
 
 // Pull the vocabulary from a grammar
-func pullVocabulary (g Grammar) MarkedVocabulary {
-	v := make(map[string]bool, 0)
+func pullVocabulary (g Grammar) (v MarkedVocabulary) {
+	v = make(map[string]bool, 0)
 
 	for k, _ := range g.nonterminals {
 		v[k] = g.nonterminals[k]
@@ -213,5 +227,43 @@ func pullVocabulary (g Grammar) MarkedVocabulary {
 		v[k] = g.terminals[k]
 	}
 
-	return MarkedVocabulary { v }
+	return
 }
+
+// Helper function to print a map
+func printMap(m map[string]bool) {
+	var keys []string
+
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		fmt.Printf("key '%s', value '%t'\n", k, m[k])
+	}
+}
+
+// Helper function to print a map
+func printSet(m map[string][]string) {
+	var keys []string
+
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		fmt.Printf("key '%s', value '%v'\n", k, m[k])
+	}
+}
+
+// Remove duplicates from a "set"
+// func removeDups(a []string) []string {
+
+// 	for i, e := range a {
+		
+// 	}
+// }
