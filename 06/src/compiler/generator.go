@@ -176,7 +176,7 @@ func FillFollowSet() {
 	// TODO this is also poor programming...
 	FollowSet["<systemgoal>"] = []string { "" }
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
 	for p := range g.productions {
 		rhs := stripRhs(p)
 		lhs := stripLhs(p)
@@ -187,22 +187,22 @@ func FillFollowSet() {
 			t := remove(ComputeFirst(next), "")
 
 			// fmt.Printf("rhs %s, t %v, next %s\n", rhs, t, next)
-			for _, s := range t {
-				if x, _ := contains(FollowSet[B], s); !x {
-					FollowSet[B] = append(FollowSet[B], s)
-				}
-			}
+			// for _, s := range t {
+			// 	if x, _ := contains(FollowSet[B], s); !x {
+					FollowSet[B] = append(FollowSet[B], t...)
+			// 	}
+			// }
 			
 			first := ComputeFirst(next)
 
-			for _, s := range first {
-				if b, _ := contains(first, ""); !b {
-					FirstSet[lhs] = append(FirstSet[lhs], s)
+			// for _, s := range first {
+				if b, _ := contains(first, ""); b {
+					FollowSet[B] = append(FollowSet[B], FollowSet[lhs]...)
 				}
-			}
+			// }
 		}
 	}
-	}
+}
 
 	printSet(FollowSet)
 }
