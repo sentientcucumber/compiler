@@ -29,6 +29,10 @@ func main() {
 
 	a := compiler.Analyzer { Reader: *reader }
 	a.ReadGrammar()
-	compiler.FillFollowSet()
-	// compiler.Predict()
+
+	// fmt.Printf("FirstSet ----------------------------------------------------------\n")
+	// compiler.FillFirstSet()
+	// fmt.Printf("FollowSet ---------------------------------------------------------\n")
+	// compiler.FillFollowSet()
+	compiler.Predict()
 }

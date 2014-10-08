@@ -31,26 +31,31 @@ func Predict() {
 	FillFirstSet()
 	FillFollowSet()
 
-	for p := range g.productions {
+	fmt.Printf("FirstSet ----------------------------------\n")
+	printSet(FirstSet)
+	fmt.Printf("FollowSet ----------------------------------\n")
+	printSet(FollowSet)
 
-		PredictSet := make([]string, 0)
+	// for p := range g.productions {
 
-		rhs := stripRhs(p)
-		lhs := stripLhs(p)
+	// 	PredictSet := make([]string, 0)
 
-		if rhs != "" {		
-			PredictSet = append(PredictSet, FirstSet[rhs]...)
-			fmt.Printf("First ( %s )", rhs)
+	// 	rhs := stripRhs(p)
+	// 	lhs := stripLhs(p)
 
-			if b, _ := contains(FirstSet[rhs], ""); b {
-				t := remove(FollowSet[lhs], "")
-				PredictSet = append(PredictSet, t...)
-				fmt.Printf("∪ Follow ( %s ) - λ", )
-			}
+	// 	if rhs != "lambda" {		
+	// 		PredictSet = append(PredictSet, FirstSet[rhs]...)
+	// 		fmt.Printf("First ( %s )", rhs)
+
+	// 		if b, _ := contains(FirstSet[rhs], "lambda"); b {
+	// 			t := remove(FollowSet[lhs], "lambda")
+	// 			PredictSet = append(PredictSet, t...)
+	// 			fmt.Printf("∪ Follow ( %s ) - λ", )
+	// 		}
 			
-			fmt.Printf(" = %s\n", PredictSet)
-		}
-	}
+	// 		fmt.Printf(" = %s\n", PredictSet)
+	// 	}
+	// }
 }
 
 // Mark which parts of a vocabulary (terminals and nonterminals) from a grammar
@@ -93,22 +98,19 @@ func ComputeFirst (s string) (result TermSet) {
 	strs := strings.Fields(s)
 
 	if k := len(strs); k == 0 {
-		result = append(result, "")
+		result = append(result, "lambda")
 	} else {
-		t := remove(FirstSet[strs[0]], "") // Remove lambda from FirstSet
-
-		result = t
+		result = remove(FirstSet[strs[0]], "lambda")
 		i := 0
-		
-		for b, _ := contains(FirstSet[strs[i]], ""); i < k && b; {
-			i++
-			t = remove(FirstSet[strs[i]], "")
 
+		for b, _ := contains(FirstSet[strs[i]], "lambda"); i < k && b; i++ {
+			t := remove(FirstSet[strs[i]], "lambda")
 			result = append(result, t...)
+			b, _ = contains(FirstSet[strs[i]], "lambda")
 		}
 
-		if b, _ := contains(FirstSet[strs[k - 1]], ""); i == k - 1 && b {
-			result = append(result, "")
+		if b, _ := contains(FirstSet[strs[k - 1]], "lambda"); i == k - 1 && b {
+			result = append(result, "lambda")
 		}
 	}
 	
@@ -122,7 +124,7 @@ func FillFirstSet() {
 
 	for A := range g.nonterminals {
 		if derivesLambda[A] {
-			FirstSet[A] = []string { "" }
+			FirstSet[A] = []string { "lambda" }
 		} else {
 			FirstSet[A] = make([]string, 0)
 		}
@@ -147,7 +149,7 @@ func FillFirstSet() {
 	}
 
 	// TODO this is poor programming... 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
 		for p := range g.productions {
 			lhs := stripLhs(p)
 			rhs := stripRhs(p)
@@ -166,45 +168,35 @@ func FillFirstSet() {
 
 // Fill the FollowSet
 func FillFollowSet() {
-	MarkLambda(g)
-	FillFirstSet()
-
 	for A := range g.nonterminals {
 		FollowSet[A] = make([]string, 0)
 	}
 
 	// TODO this is also poor programming...
-	FollowSet["<systemgoal>"] = []string { "" }
+	FollowSet["<systemgoal>"] = []string { "lambda" }
 
-	for i := 0; i < 3; i++ {
-	for p := range g.productions {
-		rhs := stripRhs(p)
-		lhs := stripLhs(p)
-		a := stripNonTerminals(rhs)
-
-		for _, B := range a {
-			next := nextSymbol(rhs, B)
-			t := remove(ComputeFirst(next), "")
-
-			// fmt.Printf("rhs %s, t %v, next %s\n", rhs, t, next)
-			// for _, s := range t {
-			// 	if x, _ := contains(FollowSet[B], s); !x {
-					FollowSet[B] = append(FollowSet[B], t...)
-			// 	}
-			// }
+	for i := 0; i < 2; i++ {
+		for p := range g.productions {
+			rhs := stripRhs(p)
+			lhs := stripLhs(p)
+			a := stripNonTerminals(rhs)
 			
-			first := ComputeFirst(next)
+			for _, B := range a {
+				next := nextSymbol(rhs, B)
+				t := remove(ComputeFirst(next), "lambda")
+				FollowSet[B] = append(FollowSet[B], t...)
 
-			// for _, s := range first {
-				if b, _ := contains(first, ""); b {
+				// primary, statement, aren't correct,
+				first := ComputeFirst(next)
+				b, _ := contains(first, "lambda")
+				fmt.Printf("next %s, first %v, contains lambda %t\n", first, b)
+
+				if b, _ := contains(first, "lambda"); b || len(first) == 0 {
 					FollowSet[B] = append(FollowSet[B], FollowSet[lhs]...)
 				}
-			// }
+			}
 		}
 	}
-}
-
-	printSet(FollowSet)
 }
 
 // Checks to see if a string exists in an array of strings
@@ -289,5 +281,5 @@ func nextSymbol(s, v string) string {
 		}
 	}
 
-	return ""
+	return "lambda"
 }
