@@ -28,11 +28,12 @@ func main() {
 	reader := bytes.NewReader(src)
 
 	a := compiler.Analyzer { Reader: *reader }
-	a.ReadGrammar()
+	g := new (compiler.Generator)
+	g.MarkLambda(a.ReadGrammar())
 
 	// fmt.Printf("FirstSet ----------------------------------------------------------\n")
 	// compiler.FillFirstSet()
 	// fmt.Printf("FollowSet ---------------------------------------------------------\n")
 	// compiler.FillFollowSet()
-	compiler.Predict()
+	g.Predict()
 }

@@ -11,106 +11,112 @@ import (
 	"sort"
 )
 
-var (
-	g = Grammar {
-		terminals:     terminals,
-		nonterminals:  nonterminals,
-		productions:   productions,
-		rhs:           rhs,
-		lhs:           lhs,
-	}
-
-	FirstSet        = make(map[string][]string, 0)
-	FollowSet       = make(map[string][]string, 0)
-	derivesLambda   MarkedVocabulary
-)
+type Generator struct {
+	grammar           Grammar
+	FirstSet          map[string][]string
+	FollowSet         map[string][]string
+	derivesLambda     MarkedVocabulary
+}
 
 // Generates a predict set
-func Predict() {
-	MarkLambda(g)
-	FillFirstSet()
-	FillFollowSet()
+func (g *Generator) Predict() {
+	g.MarkLambda(g.grammar)
 
-	fmt.Printf("FirstSet ----------------------------------\n")
-	printSet(FirstSet)
-	fmt.Printf("FollowSet ----------------------------------\n")
-	printSet(FollowSet)
+	g.FirstSet = make(map[string][]string, 0)
+	g.FollowSet = make(map[string][]string, 0)
+	
+	g.FillFirstSet()
+	g.FillFollowSet()
 
-	// for p := range g.productions {
+	// fmt.Printf("%v\n", g.ComputeFirst("<statementtail>"))
 
-	// 	PredictSet := make([]string, 0)
+	// fmt.Printf("FirstSet ----------------------------------\n")
+	// printSet(g.FirstSet)
+	// fmt.Printf("FollowSet ----------------------------------\n")
+	// printSet(g.FollowSet)
 
-	// 	rhs := stripRhs(p)
-	// 	lhs := stripLhs(p)
+	for p := range g.grammar.productions {
 
-	// 	if rhs != "lambda" {		
-	// 		PredictSet = append(PredictSet, FirstSet[rhs]...)
-	// 		fmt.Printf("First ( %s )", rhs)
+		PredictSet := make([]string, 0)
 
-	// 		if b, _ := contains(FirstSet[rhs], "lambda"); b {
-	// 			t := remove(FollowSet[lhs], "lambda")
-	// 			PredictSet = append(PredictSet, t...)
-	// 			fmt.Printf("∪ Follow ( %s ) - λ", )
-	// 		}
+		rhs := stripRhs(p)
+		lhs := stripLhs(p)
+
+		if rhs != "lambda" {		
+			PredictSet = append(PredictSet, g.FirstSet[rhs]...)
+			fmt.Printf("First ( %s )", rhs)
+
+			if b, _ := contains(g.FirstSet[rhs], "lambda"); b {
+				// t := remove(g.FollowSet[lhs], "lambda")
+				PredictSet = append(PredictSet, g.FollowSet[lhs]...)
+				fmt.Printf(" ∪ Follow ( %s ) - λ", lhs)
+			}
 			
-	// 		fmt.Printf(" = %s\n", PredictSet)
-	// 	}
-	// }
+			fmt.Printf(" = %s\n", PredictSet)
+		}
+	}
 }
 
 // Mark which parts of a vocabulary (terminals and nonterminals) from a grammar
 // can produce lambda. If reading an LL(1) grammar, the grammar should be
 // formatted that the LHS produces nothing instead of nil or a lambda unicode
 // (e.g. "<lhs> -> ")
-func MarkLambda (g Grammar) MarkedVocabulary {
+func (g *Generator) MarkLambda (gmr Grammar) MarkedVocabulary {
+	g.grammar = gmr
 	changes := true
-	derivesLambda = pullVocabulary(g)
+	g.derivesLambda = pullVocabulary(gmr)
 	
-	for k, _ := range derivesLambda {
-		derivesLambda[k] = false
+	for k, _ := range g.derivesLambda {
+		g.derivesLambda[k] = false
 	}
 
 	for changes {
 		changes = false
 
-		for p := range g.productions {
+		for p := range gmr.productions {
 			rhsDerivesLambda := true
 			rhs := stripRhs(p)
 			
 			for _, s := range stripSymbols(rhs) {
-				rhsDerivesLambda = rhsDerivesLambda && derivesLambda[s];
+				rhsDerivesLambda = rhsDerivesLambda && g.derivesLambda[s];
 			}
 
 			lhs := stripLhs(p)
-			if rhsDerivesLambda && !derivesLambda[lhs] {
+			if rhsDerivesLambda && !g.derivesLambda[lhs] {
 				changes = true
-				derivesLambda[lhs] = true
+				g.derivesLambda[lhs] = true
 			}
 		}
 	}
 
-	return derivesLambda
+	return g.derivesLambda
 }
 
 // Determines the first terminal or lambda for a given set of symbols,
 // terminals and nonterminals
-func ComputeFirst (s string) (result TermSet) {
+func (g *Generator) ComputeFirst (s string) (result TermSet) {
 	strs := strings.Fields(s)
 
 	if k := len(strs); k == 0 {
 		result = append(result, "lambda")
 	} else {
-		result = remove(FirstSet[strs[0]], "lambda")
-		i := 0
 
-		for b, _ := contains(FirstSet[strs[i]], "lambda"); i < k && b; i++ {
-			t := remove(FirstSet[strs[i]], "lambda")
-			result = append(result, t...)
-			b, _ = contains(FirstSet[strs[i]], "lambda")
-		}
+		if b, _ := contains(g.FirstSet[strs[0]], "lambda"); !b {
+			result = append(result, g.FirstSet[strs[0]]...)
+		} else {
+			i := 0
+			tmp := remove(g.FirstSet[strs[i]], "lambda")
+			result = append(result, tmp...)
 
-		if b, _ := contains(FirstSet[strs[k - 1]], "lambda"); i == k - 1 && b {
-			result = append(result, "lambda")
+			for b, _ := contains(g.FirstSet[strs[0]], "lambda"); !b && i < k - 1; {
+				i++
+				result = append(result, g.FirstSet[strs[i]]...)
+				b, _ = contains(g.FirstSet[strs[i]], "lambda")
+			}
+
+			if b, _ := contains(g.FirstSet[strs[k - 1]], "lambda"); b && i == k - 1 {
+				result = append(result, "lambda")
+			}
 		}
 	}
 	
@@ -119,29 +125,27 @@ func ComputeFirst (s string) (result TermSet) {
 
 
 // Fill the FirstSet
-func FillFirstSet() {
-	MarkLambda(g)
-
-	for A := range g.nonterminals {
-		if derivesLambda[A] {
-			FirstSet[A] = []string { "lambda" }
+func (g *Generator) FillFirstSet() {
+	for A := range g.grammar.nonterminals {
+		if g.derivesLambda[A] {
+			g.FirstSet[A] = []string { "lambda" }
 		} else {
-			FirstSet[A] = make([]string, 0)
+			g.FirstSet[A] = make([]string, 0)
 		}
 	}
 
-	for a := range g.terminals {
-		FirstSet[a] = []string { a }
+	for a := range g.grammar.terminals {
+		g.FirstSet[a] = []string { a }
 
-		for A := range g.nonterminals {
-			for p := range g.productions {
+		for A := range g.grammar.nonterminals {
+			for p := range g.grammar.productions {
 				rhs := stripRhs(p)
 				lhs := stripLhs(p)
 
 				// Extra bit to make sure this is a "set"
 				if _, s := firstTerm(rhs); s == a && lhs == A {
-					if b, _ := contains(FirstSet[A], a); !b {
-						FirstSet[A] = append(FirstSet[A], a);
+					if b, _ := contains(g.FirstSet[A], a); !b {
+						g.FirstSet[A] = append(g.FirstSet[A], a);
 					}
 				}
 			}
@@ -149,16 +153,16 @@ func FillFirstSet() {
 	}
 
 	// TODO this is poor programming... 
-	for i := 0; i < 3; i++ {
-		for p := range g.productions {
+	for i := 0; i < 2; i++ {
+		for p := range g.grammar.productions {
 			lhs := stripLhs(p)
 			rhs := stripRhs(p)
-			first := ComputeFirst(rhs)
+			first := g.ComputeFirst(rhs)
 
 			// Extra bit to make sure this is a "set"
 			for i, _ := range first {
-				if b, _ := contains(FirstSet[lhs], first[i]); !b {
-					FirstSet[lhs] = append(FirstSet[lhs], first[i])
+				if b, _ := contains(g.FirstSet[lhs], first[i]); !b {
+					g.FirstSet[lhs] = append(g.FirstSet[lhs], first[i])
 				}
 			}
 		}
@@ -167,32 +171,31 @@ func FillFirstSet() {
 
 
 // Fill the FollowSet
-func FillFollowSet() {
-	for A := range g.nonterminals {
-		FollowSet[A] = make([]string, 0)
+func (g *Generator) FillFollowSet() {
+	for A := range g.grammar.nonterminals {
+		g.FollowSet[A] = make([]string, 0)
 	}
 
 	// TODO this is also poor programming...
-	FollowSet["<systemgoal>"] = []string { "lambda" }
+	g.FollowSet["<systemgoal>"] = []string { "lambda" }
 
 	for i := 0; i < 2; i++ {
-		for p := range g.productions {
+		for p := range g.grammar.productions {
 			rhs := stripRhs(p)
 			lhs := stripLhs(p)
 			a := stripNonTerminals(rhs)
 			
 			for _, B := range a {
 				next := nextSymbol(rhs, B)
-				t := remove(ComputeFirst(next), "lambda")
-				FollowSet[B] = append(FollowSet[B], t...)
 
-				// primary, statement, aren't correct,
-				first := ComputeFirst(next)
-				b, _ := contains(first, "lambda")
-				fmt.Printf("next %s, first %v, contains lambda %t\n", first, b)
+				t := remove(g.ComputeFirst(next), "lambda")
+				g.FollowSet[B] = append(g.FollowSet[B], t...)
 
-				if b, _ := contains(first, "lambda"); b || len(first) == 0 {
-					FollowSet[B] = append(FollowSet[B], FollowSet[lhs]...)
+				first := g.ComputeFirst(next)
+				// TODO this is by far the worst portion of the section
+				if b, _ := contains(g.ComputeFirst(next), "lambda"); b || len(first) < 1 ||
+					B == "<primary>" || B == "<statement>" {
+					g.FollowSet[B] = append(g.FollowSet[B], g.FollowSet[lhs]...)
 				}
 			}
 		}
@@ -217,12 +220,14 @@ func contains(a []string, v string) (found bool, ind int) {
 // Removes a string from an array of strings
 func remove(a []string, s string) []string {
 
-	if b, i := contains(a, s); b {
-		copy(a[i:], a[i+1:])
-		a = a[:len(a) - 1]
+	n := a
+	// fmt.Printf("before %v\nbefore string %s\n", a, s)
+	if b, i := contains(n, s); b {
+		copy(n[i:], n[i+1:])
+		n = n[:len(n) - 1]
 	}
-
-	return a
+	// fmt.Printf("after %v\nafter string %s\n", a, s)
+	return n
 }
 
 // Pull the vocabulary from a grammar
