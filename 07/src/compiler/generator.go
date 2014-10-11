@@ -1,5 +1,5 @@
 // Author: Michael Hunsinger
-// Date:   Oct 4 2014
+// Date:   Oct 11 2014
 // File:   generator.go
 // Implementation of a predict generator for LL(1) grammars
 
@@ -19,7 +19,7 @@ type Generator struct {
 	derivesLambda     MarkedVocabulary
 }
 
-// Used everywhere
+// Used throughout the program, this should be const, but can't do so
 var lambda = Symbol { "λ", "LAMBDA" }
 
 // Generates a predict set
@@ -48,10 +48,7 @@ func (g *Generator) Predict() {
 
 			// If the first symbol is a terminal, add it on, it's the
 			// predict set, otherwise, find the first set for the nonterminal
-			if (regexp.MustCompile("[[:punct:]]\\s").MatchString(strs[i]) ||
-				!regexp.MustCompile("<[a-zA-Z\\s]*>").MatchString(strs[i])) &&
-				lhs == "λ" {
-
+			if isTermial(strs[i], lhs) {
 				g.PredictSet.add(strs[i], Symbol { strs[i], "TERMINAL"})
 				term = true
 			} else {
@@ -196,7 +193,6 @@ func (g *Generator) FillFirstSet() {
 		}
 	}
 
-	// TODO this is poor programming, actually check for changes
 	for i := 0; i < 2; i++ {
 		for p := range g.grammar.productions {
 			lhs := stripLhs(p)
@@ -216,10 +212,9 @@ func (g *Generator) FillFollowSet() {
 		g.FollowSet[A] = make([]Symbol, 0)
 	}
 
-	// TODO this is also poor programming, should be settable
-	g.FollowSet["<systemgoal>"] = []Symbol {lambda}
+	start := findStartSymbol(g.grammar)
+	g.FollowSet[start.name] = []Symbol {lambda}
 
-	// TODO change this too when checking for changes
 	for i := 0; i < 2; i++ {
 		for p := range g.grammar.productions {
 			rhs := stripRhs(p)
@@ -297,26 +292,27 @@ func nextSymbol(s, v string) Symbol {
 	return lambda
 }
 
-// Determines if a set has a terminal symbol
-func containsTerminal(set []string) (found bool) {
-
-	for _, v := range set {
-		if !regexp.MustCompile("<[a-zA-Z\\s]*>").MatchString(v) {
-			found = true
-			return
-		}
-	}
-
-	return
-}
-
 // Determines if the string is terminal or not
-func isTermial(s string) bool {
+func isTermial(s string, l string) bool {
 	if (regexp.MustCompile("[[:punct:]]\\s").MatchString(s) ||
 		!regexp.MustCompile("<[a-zA-Z\\s]*>").MatchString(s)) &&
-		s == "λ" {
+		l == "λ" {
 		return true
 	}
 
 	return false
+}
+
+// Determine's the start symbol in a grammar, must be defined in the grammar
+// passed in (e.g. <Start> -> <nonterminal> $)
+func findStartSymbol(g Grammar) Symbol {
+
+	for p := range g.productions {
+		if strings.Index(p, "$") > 0 {
+			start := stripLhs(p)
+			return Symbol { start, "NONTERMINAL"}
+		}
+	}
+
+	panic(fmt.Errorf("No start symbol defined in the grammar"))
 }
