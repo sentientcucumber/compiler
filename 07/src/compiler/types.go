@@ -130,4 +130,3 @@ type Grammar struct {
 	rhs           map[string]bool
 	lhs           map[string]bool
 }
-
