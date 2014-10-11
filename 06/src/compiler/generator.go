@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 	"sort"
+	"regexp"
 )
 
 type Generator struct {
@@ -28,32 +29,54 @@ func (g *Generator) Predict() {
 	g.FillFirstSet()
 	g.FillFollowSet()
 
-	// fmt.Printf("%v\n", g.ComputeFirst("<statementtail>"))
-
 	// fmt.Printf("FirstSet ----------------------------------\n")
 	// printSet(g.FirstSet)
 	// fmt.Printf("FollowSet ----------------------------------\n")
 	// printSet(g.FollowSet)
 
 	for p := range g.grammar.productions {
-
-		PredictSet := make([]string, 0)
-
+		predictSet := make([]string, 0)
 		rhs := stripRhs(p)
 		lhs := stripLhs(p)
 
-		if rhs != "lambda" {		
-			PredictSet = append(PredictSet, g.FirstSet[rhs]...)
-			fmt.Printf("First ( %s )", rhs)
+		// Skip over where rhs is empty
+		strs := strings.Fields(rhs)
+		term := false
+		fmt.Printf("First ( %s )", rhs)
 
-			if b, _ := contains(g.FirstSet[rhs], "lambda"); b {
-				// t := remove(g.FollowSet[lhs], "lambda")
-				PredictSet = append(PredictSet, g.FollowSet[lhs]...)
-				fmt.Printf(" ∪ Follow ( %s ) - λ", lhs)
+		for i := 0; i < len(strs) && !term; i++ {
+
+			// If the first symbol is a terminal, add it on, it's the
+			// predict set, otherwise, find the first set for the nonterminal
+			if (regexp.MustCompile("[[:punct:]]\\s").MatchString(strs[i]) ||
+				!regexp.MustCompile("<[a-zA-Z\\s]*>").MatchString(strs[i])) &&
+				lhs == "lambda" {
+				predictSet = append(predictSet, strs[i])
+				term = true
+
+			} else {
+				predictSet = append(predictSet, g.FirstSet[strs[i]]...)
+
+				// This should be safe in this nonterminal branch, as
+				// terminals will never result in lambda
+				if b, _ := contains(g.FirstSet[strs[i]], "lambda"); b {
+					predictSet = remove(predictSet, "lambda")
+
+					// This bit ensures the set contains unique values
+					for _, v := range g.FollowSet[lhs] {
+						if c, _ := contains(predictSet, v); !c && v != "lambda" {
+							predictSet = append(predictSet, v)
+						}
+					}
+
+					fmt.Printf(" ∪ Follow ( %s ) - λ", lhs)
+				}
+
+				term = containsTerminal(predictSet)
 			}
-			
-			fmt.Printf(" = %s\n", PredictSet)
 		}
+		
+		fmt.Printf(" = %s\n", predictSet)
 	}
 }
 
@@ -102,18 +125,21 @@ func (g *Generator) ComputeFirst (s string) (result TermSet) {
 	} else {
 
 		if b, _ := contains(g.FirstSet[strs[0]], "lambda"); !b {
-			result = append(result, g.FirstSet[strs[0]]...)
+			tmp := remove(g.FirstSet[strs[0]], "lambda")
+			result = append(result, tmp...) // g.FirstSet[strs[0]]...)
 		} else {
 			i := 0
-			tmp := remove(g.FirstSet[strs[i]], "lambda")
-			result = append(result, tmp...)
+			// tmp := remove(g.FirstSet[strs[i]], "lambda")
+			// result = append(result, tmp...)
 
-			for b, _ := contains(g.FirstSet[strs[0]], "lambda"); !b && i < k - 1; {
-				i++
-				result = append(result, g.FirstSet[strs[i]]...)
-				b, _ = contains(g.FirstSet[strs[i]], "lambda")
+			for b, _ := contains(g.FirstSet[strs[0]], "lambda");
+			!b && i < k - 1;
+			b, _ = contains(g.FirstSet[strs[i]], "lambda") {
+				tmp := remove(g.FirstSet[strs[i]], "lambda")
+				result = append(result, tmp...) //g.FirstSet[strs[i]]...)
 			}
 
+			// never reaches this point... 
 			if b, _ := contains(g.FirstSet[strs[k - 1]], "lambda"); b && i == k - 1 {
 				result = append(result, "lambda")
 			}
@@ -169,7 +195,6 @@ func (g *Generator) FillFirstSet() {
 	}
 }
 
-
 // Fill the FollowSet
 func (g *Generator) FillFollowSet() {
 	for A := range g.grammar.nonterminals {
@@ -177,7 +202,7 @@ func (g *Generator) FillFollowSet() {
 	}
 
 	// TODO this is also poor programming...
-	g.FollowSet["<systemgoal>"] = []string { "lambda" }
+	g.FollowSet["<S>"] = []string { "lambda" }
 
 	for i := 0; i < 2; i++ {
 		for p := range g.grammar.productions {
@@ -187,15 +212,17 @@ func (g *Generator) FillFollowSet() {
 			
 			for _, B := range a {
 				next := nextSymbol(rhs, B)
+				g.FollowSet[B] = append(g.FollowSet[B], g.FirstSet[next]...)
 
-				t := remove(g.ComputeFirst(next), "lambda")
-				g.FollowSet[B] = append(g.FollowSet[B], t...)
+				if b, _ := contains(g.ComputeFirst(next), "lambda");
+				b || len(g.FirstSet[next]) == 0 {
 
-				first := g.ComputeFirst(next)
-				// TODO this is by far the worst portion of the section
-				if b, _ := contains(g.ComputeFirst(next), "lambda"); b || len(first) < 1 ||
-					B == "<primary>" || B == "<statement>" {
-					g.FollowSet[B] = append(g.FollowSet[B], g.FollowSet[lhs]...)
+					// This bit added to maintain the set contains unique values
+					for _, v := range g.FollowSet[lhs] {
+						if c, _ := contains(g.FollowSet[B], v); !c {
+							g.FollowSet[B] = append(g.FollowSet[B], v)
+						}
+					}
 				}
 			}
 		}
@@ -221,12 +248,11 @@ func contains(a []string, v string) (found bool, ind int) {
 func remove(a []string, s string) []string {
 
 	n := a
-	// fmt.Printf("before %v\nbefore string %s\n", a, s)
 	if b, i := contains(n, s); b {
 		copy(n[i:], n[i+1:])
 		n = n[:len(n) - 1]
 	}
-	// fmt.Printf("after %v\nafter string %s\n", a, s)
+
 	return n
 }
 
@@ -287,4 +313,17 @@ func nextSymbol(s, v string) string {
 	}
 
 	return "lambda"
+}
+
+// Determines if a set has a terminal symbol
+func containsTerminal(set []string) (found bool) {
+
+	for _, v := range set {
+		if !regexp.MustCompile("<[a-zA-Z\\s]*>").MatchString(v) {
+			found = true
+			return
+		}
+	}
+
+	return
 }

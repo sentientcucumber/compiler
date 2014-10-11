@@ -48,6 +48,10 @@
      FillFirstSet all work correctly, but will need to be reworked when changes
      are made. FillFollowSet does not work correctly. May have something to do
      with the maps.
+** [2014-10-10 Fri]
+   - There still appear to be some minor issues regarding filling the
+     FollowSet, but nothing that prevents a predict set form being determined
+     correctly.
 * Go Documentation
 This implentation of the scanner uses Google's new language Go. There are
 instructions on how to setup Go, a description of the file structure, and
@@ -97,9 +101,6 @@ how to compile and run the program.
    extended Micro language.
 
 * Sample Input and Output
-  See change log for details about this implementation as it doesn't work
-  correctly. 
-  
   #+BEGIN_SRC
   Input for the problem from Assignment 5, 2b
   <S> -> a <S> e
@@ -110,12 +111,12 @@ how to compile and run the program.
   <C> -> d
   
   Output
-  First ( <B> )  = [b]
-  First ( b <B> e )  = []
-  First ( <C> )  = [c d]
-  First ( c <C> e )  = []
-  First ( d )  = [d]
-  First ( a <S> e )  = []
+  First ( a <S> e ) = [a]
+  First ( <B> ) = [b c d]
+  First ( b <B> e ) = [b]
+  First ( <C> ) = [c d]
+  First ( c <C> e ) = [c]
+  First ( d ) = [d]
   
   Input for Micro language in standard form
   <program>         -> begin <stmt list> end
@@ -142,28 +143,28 @@ how to compile and run the program.
   <system goal>     -> <program> $
   
   Output
-  First ( read ( <id list> ) ; )  = []
-  First (  )  = []
-  First (  )  = []
-  First ( ( <expression> ) )  = []
-  First ( <program> $ )  = []
-  First ( - )  = [-]
-  First ( <statement> <statement tail> )  = []
-  First ( Id := <expression> ; )  = []
-  First ( write ( <expr list> ) ; )  = []
-  First ( Id <id tail> )  = []
-  First ( Id )  = [Id]
-  First ( <add op> <expression> )  = []
-  First ( IntLiteral )  = [IntLiteral]
-  First (  )  = []
-  First ( , Id <id tail> )  = []
-  First (  )  = []
-  First ( <expression> <expression tail> )  = []
-  First ( , <expr list> )  = []
-  First ( begin <stmt list> end )  = []
-  First ( <stmt list> )  = [read write]
-  First ( <primary> <primary tail> )  = []
-  First ( + )  = [+]
+  First ( <addop> <expression> ) = [+ -]
+  First ( IntLiteral ) = [IntLiteral]
+  First ( <program> $ ) = [begin]
+  First ( lambda ) ∪ Follow ( <expressiontail> ) - λ = [)]
+  First ( + ) = [+]
+  First ( - ) = [-]
+  First ( <statement> <statementtail> ) = [read write Id]
+  First ( Id := <expression> ; ) = [Id]
+  First ( read ( <idlist> ) ; ) = [read]
+  First ( , <exprlist> ) = [,]
+  First ( lambda ) ∪ Follow ( <primarytail> ) - λ = [; ) ,]
+  First ( ( <expression> ) ) = [(]
+  First ( <stmtlist> ) = [read write Id]
+  First ( lambda ) ∪ Follow ( <statementtail> ) - λ = [end]
+  First ( , Id <idtail> ) = [,]
+  First ( <primary> <primarytail> ) = [( Id IntLiteral]
+  First ( <expression> <expressiontail> ) = [( Id IntLiteral]
+  First ( Id ) = [Id]
+  First ( begin <stmtlist> end ) = [begin]
+  First ( write ( <exprlist> ) ; ) = [write]
+  First ( Id <idtail> ) = [Id]
+  First ( lambda ) ∪ Follow ( <idtail> ) - λ = [)]
   #+END_SRC
   
 
