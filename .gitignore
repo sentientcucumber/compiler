@@ -1,19 +1,7 @@
 completed/
 
-01/pkg/
-02/pkg/
-03/pkg/
-04/pkg/
-05/pkg/
-06/pkg/
-
-01/bin
-02/bin
-03/bin
-04/bin
-05/bin
-06/bin
-
+*/pkg
+*/bin
 *.tex
 *.pdf
 
