@@ -12,71 +12,116 @@ import (
 )
 
 type Generator struct {
-	grammar           Grammar
-	FirstSet          Set
-	FollowSet         Set
-	PredictSet        Set
+	Grammar           Grammar
+	firstSet          Set
+	followSet         Set
+	predictSet        Set
 	derivesLambda     MarkedVocabulary
+	table             Table
 }
 
 // Used throughout the program, this should be const, but can't do so
 var lambda = Symbol { "λ", "LAMBDA" }
 
+// Generate a LL(1) table
+func (g *Generator) Table() {
+	g.table.init(g.Grammar)
+
+	g.table.array = make([][]int, g.table.rowCount)
+	for i := range g.table.array {
+		g.table.array[i] = make([]int, g.table.colCount)
+	}
+
+	// populate the predict set
+	g.predict()
+
+	for i, v := range g.table.rowTitle {
+		var terms []Symbol
+		
+		// Check to see if the value is in the table, some are stored under
+		// different names, (e.g. λ <expressiontail>)
+		if _, x := g.predictSet[v]; x {
+			terms = g.predictSet[v]
+		} else {
+			// If its not in there, check to see if its a lambda value
+			temp := []string { lambda.name, v }
+
+			// If it's not the lambda value, add the first set
+			if _, y := g.predictSet[strings.Join(temp, " ")]; y {
+				terms = g.predictSet[strings.Join(temp, " ")]
+			} else {
+				terms = g.firstSet[v]
+			}
+		}
+
+		for _, t := range terms {
+			for j := range g.table.colTitle {
+				if g.table.colTitle[j] == t.name {
+					fmt.Printf("nonterminal %s, terminal %s\n", v, t.name)
+					g.table.array[i][j] = g.table.lookup(Symbol {v, "NONTERMINAL"}, t)
+				}
+			}
+		}
+	}
+
+	g.table.print()
+}
+
 // Generates a predict set
-func (g *Generator) Predict() {
-	// Consume the grammar
-	g.MarkLambda(g.grammar)
+func (g *Generator) predict() {
+	// Consume the Grammar
+	g.MarkLambda(g.Grammar)
 
 	// Initialize sets
-	g.FirstSet   = make(map[string][]Symbol, 0)
-	g.FollowSet  = make(map[string][]Symbol, 0)
-	g.PredictSet = make(map[string][]Symbol, 0)
+	g.firstSet   = make(map[string][]Symbol, 0)
+	g.followSet  = make(map[string][]Symbol, 0)
+	g.predictSet = make(map[string][]Symbol, 0)
 
 	g.FillFirstSet()
 	g.FillFollowSet()
 
-	for p := range g.grammar.productions {
+	for p := range g.Grammar.productions {
 		rhs := stripRhs(p)
 		lhs := stripLhs(p)
 
 		// Skip over where rhs is empty
 		strs := strings.Fields(rhs)
 		term := false
-		fmt.Printf("First ( '%s' )", rhs)
+		// fmt.Printf("First ( '%s' )", rhs)
 
 		for i := 0; i < len(strs) && !term; i++ {
 
 			// If the first symbol is a terminal, add it on, it's the
 			// predict set, otherwise, find the first set for the nonterminal
 			if isTermial(strs[i], lhs) {
-				g.PredictSet.add(strs[i], Symbol { strs[i], "TERMINAL"})
+				g.predictSet.add(strs[i], Symbol { strs[i], "TERMINAL"})
 				term = true
 			} else {
-				for _, v := range g.FirstSet[strs[i]] {
-						g.PredictSet.add(strs[i], v)
+				for _, v := range g.firstSet[strs[i]] {
+					g.predictSet.add(strs[i], v)
 				}
 
 				// This should be safe in this nonterminal branch, as
 				// terminals will never result in lambda
-				if b, _ := g.FirstSet.containsLambda(strs[i]); b {
-					g.PredictSet.removeLambda(strs[i])
+				if b, _ := g.firstSet.containsLambda(strs[i]); b {
+					g.predictSet.removeLambda(strs[i])
 
-					for _, v := range g.FollowSet[lhs] {
+					for _, v := range g.followSet[lhs] {
 
 						// Used to keep the various lambdas in line
 						if v.name != lambda.name {
 							temp := []string { lambda.name, lhs }
-							g.PredictSet.add(strings.Join(temp, " "), v)
+							g.predictSet.add(strings.Join(temp, " "), v)
 						}
 					}
 					
-					fmt.Printf(" ∪ Follow ( %s ) - λ", lhs)
+					// fmt.Printf(" ∪ Follow ( %s ) - λ", lhs)
 				}
 
 				term = true
 			}
 
-			fmt.Printf(" = ")
+			// fmt.Printf(" = ")
 
 			// This looks up the correct name since we stored lambda based on
 			// their non-terminal name (e.g. "λ <expressiontail>")
@@ -85,21 +130,21 @@ func (g *Generator) Predict() {
 				strs[i] = strings.Join(temp, " ")
 			}
 
-			for _, v := range g.PredictSet[strs[i]] {
-				fmt.Printf("%s ", v.name)
-			}
+			// for _, v := range g.predictSet[strs[i]] {
+			// 	fmt.Printf("%s ", v.name)
+			// }
 
-			fmt.Printf("\n")
+			// fmt.Printf("\n")
 		}
 	}
 }
 
-// Mark which parts of a vocabulary (terminals and nonterminals) from a grammar
-// can produce lambda. If reading an LL(1) grammar, the grammar should be
+// Mark which parts of a vocabulary (terminals and nonterminals) from a Grammar
+// can produce lambda. If reading an LL(1) Grammar, the Grammar should be
 // formatted that the LHS produces nothing instead of nil or a lambda unicode
 // (e.g. "<lhs> -> ")
 func (g *Generator) MarkLambda (gmr Grammar) MarkedVocabulary {
-	g.grammar = gmr
+	g.Grammar = gmr
 	changes := true
 	g.derivesLambda = pullVocabulary(gmr)
 	
@@ -138,22 +183,21 @@ func (g *Generator) ComputeFirst (s string) (result TermSet) {
 		result = append(result, lambda)
 	} else {
 
-		if b, _ := g.FirstSet.containsLambda(strs[0]); !b {
-			temp := g.FirstSet.removeLambda(strs[0])
-			result = append(result, temp[strs[0]]...) // g.FirstSet[strs[0]]...)
-
+		if b, _ := g.firstSet.containsLambda(strs[0]); !b {
+			temp := g.firstSet.removeLambda(strs[0])
+			result = append(result, temp[strs[0]]...)
 		} else {
 			i := 0
 
-			b, _ := g.FirstSet.containsLambda(strs[0])
+			b, _ := g.firstSet.containsLambda(strs[0])
 
 			for !b && i < k - 1 {
-				temp := g.FirstSet.removeLambda(strs[i])
+				temp := g.firstSet.removeLambda(strs[i])
 				result = append(result, temp[strs[i]]...)
-				b, _ = g.FirstSet.containsLambda(strs[0])
+				b, _ = g.firstSet.containsLambda(strs[0])
 			}
 
-			if b, _ := g.FirstSet.containsLambda(strs[k - 1]); b && i == k - 1 {
+			if b, _ := g.firstSet.containsLambda(strs[k - 1]); b && i == k - 1 {
 				result = append(result, lambda)
 			}
 		}
@@ -163,30 +207,30 @@ func (g *Generator) ComputeFirst (s string) (result TermSet) {
 }
 
 
-// Fill the FirstSet
+// Fill the firstSet
 func (g *Generator) FillFirstSet() {
-	for A := range g.grammar.nonterminals {
+	for A := range g.Grammar.nonterminals {
 		if g.derivesLambda[A] {
-			g.FirstSet[A] = []Symbol { lambda }
+			g.firstSet[A] = []Symbol { lambda }
 		} else {
-			g.FirstSet[A] = make([]Symbol, 0)
+			g.firstSet[A] = make([]Symbol, 0)
 		}
 	}
 
-	for a := range g.grammar.terminals {
-		g.FirstSet[a] = []Symbol { Symbol { a, "TERMINAL" } }
+	for a := range g.Grammar.terminals {
+		g.firstSet[a] = []Symbol { Symbol { a, "TERMINAL" } }
 
-		for A := range g.grammar.nonterminals {
-			for p := range g.grammar.productions {
+		for A := range g.Grammar.nonterminals {
+			for p := range g.Grammar.productions {
 				rhs := stripRhs(p)
 				lhs := stripLhs(p)
 
 				// Added bit of logic to ensure SymbolCategory is correct
 				if _, s := firstTerm(rhs); s == a && lhs == A {
 					if a == lambda.name {
-						g.FirstSet.add(A, lambda)
+						g.firstSet.add(A, lambda)
 					} else {
-						g.FirstSet.add(A, Symbol { a, "TERMINAL" })
+						g.firstSet.add(A, Symbol { a, "TERMINAL" })
 					}
 				}
 			}
@@ -194,39 +238,39 @@ func (g *Generator) FillFirstSet() {
 	}
 
 	for i := 0; i < 2; i++ {
-		for p := range g.grammar.productions {
+		for p := range g.Grammar.productions {
 			lhs := stripLhs(p)
 			rhs := stripRhs(p)
 			first := g.ComputeFirst(rhs)
 
 			for _, v := range first {
-				g.FirstSet.add(lhs, v)
+				g.firstSet.add(lhs, v)
 			}
 		}
 	}
 }
 
-// Fill the FollowSet
+// Fill the followSet
 func (g *Generator) FillFollowSet() {
-	for A := range g.grammar.nonterminals {
-		g.FollowSet[A] = make([]Symbol, 0)
+	for A := range g.Grammar.nonterminals {
+		g.followSet[A] = make([]Symbol, 0)
 	}
 
-	start := findStartSymbol(g.grammar)
-	g.FollowSet[start.name] = []Symbol {lambda}
+	start := findStartSymbol(g.Grammar)
+	g.followSet[start.name] = []Symbol {lambda}
 
 	for i := 0; i < 2; i++ {
-		for p := range g.grammar.productions {
+		for p := range g.Grammar.productions {
 			rhs := stripRhs(p)
 			lhs := stripLhs(p)
 			a   := stripNonTerminals(rhs)
 			
 			for _, B := range a {
 				next := nextSymbol(rhs, B)
-				g.FollowSet.add(B, g.FirstSet[next.name]...)
+				g.followSet.add(B, g.firstSet[next.name]...)
 
-				if b, _ := g.FirstSet.containsLambda(next.name); b {
-					g.FollowSet.add(B, g.FollowSet[lhs]...)
+				if b, _ := g.firstSet.containsLambda(next.name); b {
+					g.followSet.add(B, g.followSet[lhs]...)
 				}
 			}
 		}
@@ -260,7 +304,7 @@ func remove(a []Symbol, s Symbol) []Symbol {
 	return n
 }
 
-// Pull the vocabulary from a grammar
+// Pull the vocabulary from a Grammar
 func pullVocabulary (g Grammar) (v MarkedVocabulary) {
 	v = make(map[string]bool, 0)
 
@@ -303,7 +347,7 @@ func isTermial(s string, l string) bool {
 	return false
 }
 
-// Determine's the start symbol in a grammar, must be defined in the grammar
+// Determine's the start symbol in a Grammar, must be defined in the Grammar
 // passed in (e.g. <Start> -> <nonterminal> $)
 func findStartSymbol(g Grammar) Symbol {
 
@@ -314,5 +358,5 @@ func findStartSymbol(g Grammar) Symbol {
 		}
 	}
 
-	panic(fmt.Errorf("No start symbol defined in the grammar"))
+	panic(fmt.Errorf("No start symbol defined in the Grammar"))
 }

@@ -21,6 +21,7 @@ var (
 	productions   = map[string]bool {}
 	rhs           = map[string]bool {}
 	lhs           = map[string]bool {}
+	staticProd    = map[int]string  {}
 )
 
 // Reads whatever grammar is passed in.
@@ -28,6 +29,9 @@ func (a *Analyzer) ReadGrammar() Grammar {
 	for err := a.readProduction(); err == nil; err = a.readProduction() {
 		a.readProduction()
 	}
+	
+	// Generate a map that is static, needed to produce an LL(1) table
+	a.staticProductions()
 
 	return Grammar {
 		terminals:     terminals,
@@ -35,6 +39,27 @@ func (a *Analyzer) ReadGrammar() Grammar {
 		productions:   productions,
 		rhs:           rhs,
 		lhs:           lhs,
+		staticProd:    staticProd,
+	}
+}
+
+// Reads a grammar and returns a map of the productions based on the order in
+// which they were read.
+func (a *Analyzer) staticProductions() {
+	staticProd = make(map[int]string)
+	a.Reader.Seek(0,0)
+	buf := bytes.NewBuffer(*new ([]byte))
+	
+	b, err := a.Reader.ReadByte(); 
+	for err == nil {
+		buf.WriteByte(b)
+		b, err = a.Reader.ReadByte()
+	}
+
+	l, err := buf.ReadBytes('\n')
+	for i := 1; err == nil; i++ {
+		staticProd[i] = string(l)
+		l, err = buf.ReadBytes('\n')
 	}
 }
 
@@ -42,7 +67,6 @@ func (a *Analyzer) ReadGrammar() Grammar {
 // a different line. It will then grab all the terminal, nonterminals, RHS and
 // LHS for each production.
 func (a *Analyzer) readProduction() error {
-
 	buf := bytes.NewBuffer(*new ([]byte))
 
 	for b, err := a.Reader.ReadByte(); b != '\n'; b, err = a.Reader.ReadByte() {
@@ -66,7 +90,6 @@ func (a *Analyzer) readProduction() error {
 // Reads all the nonterminals in a buffer, notice this passes them into a set
 // so any repetitions will be ignored
 func readNonterminals (buf bytes.Buffer) {
-
 	s := strings.Replace(buf.String(), "->", "", 1)
 
 	for strings.Contains(s, "<") {
@@ -81,7 +104,6 @@ func readNonterminals (buf bytes.Buffer) {
 // Reads all the terminals in a buffer, notice this passes them into a set so
 // any repetitions will be ignored
 func readTerminals (buf bytes.Buffer) {
-
 	// remove terminal symbols, arrow, and pipe
 	re := regexp.MustCompile("(?:\\<[a-zA-Z0-9 ]*\\>|->|\\|)")
 	s := re.ReplaceAllString(buf.String(), " ")
@@ -89,7 +111,6 @@ func readTerminals (buf bytes.Buffer) {
 	strs := strings.Fields(s)
 	
 	for _, i := range strs {
-
 		terminals[i] = true
 	}
 }
@@ -97,7 +118,6 @@ func readTerminals (buf bytes.Buffer) {
 // Reads the RHS of each production, notice this passes them into a set so any
 // repetitions will be ignored
 func readRHS (buf bytes.Buffer) {
-
 	r := strings.Split(buf.String(), "->")
 	rhs[strings.TrimSpace(r[1])] = true
 }
@@ -105,28 +125,24 @@ func readRHS (buf bytes.Buffer) {
 // Reads the LHS of each production, notice this passes them into a set, so any
 // repetitions will be ignored
 func readLHS(buf bytes.Buffer) {
-
 	l := strings.Split(buf.String(), "->")
 	lhs[strings.TrimSpace(l[0])] = true
 }
 
 // Pull the RHS from a string representation of a string
 func stripRhs (s string) string {
-
 	strs := strings.Split(s, "->")
 	return strings.TrimSpace(strs[1])
 }
 
 // Pull the LHS from a string representation of a string
 func stripLhs (s string) string {
-
 	strs := strings.Split(s, "->")
 	return strings.TrimSpace(strs[0])
 }
 
 // Pull the symbols from a string representation
 func stripSymbols (s string) []string {
-
 	strArr := make([]string, 0)
 	nonStr := strings.Replace(s, "->", "", 1)
 	

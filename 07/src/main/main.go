@@ -28,7 +28,6 @@ func main() {
 	reader := bytes.NewReader(src)
 
 	a := compiler.Analyzer { Reader: *reader }
-	g := new (compiler.Generator)
-	g.MarkLambda(a.ReadGrammar())
-	g.Predict()
+	g := compiler.Generator { Grammar: a.ReadGrammar() }
+	g.Table()
 }
