@@ -30,10 +30,5 @@ func main() {
 	a := compiler.Analyzer { Reader: *reader }
 	g := new (compiler.Generator)
 	g.MarkLambda(a.ReadGrammar())
-
-	// fmt.Printf("FirstSet ----------------------------------------------------------\n")
-	// compiler.FillFirstSet()
-	// fmt.Printf("FollowSet ---------------------------------------------------------\n")
-	// compiler.FillFollowSet()
 	g.Predict()
 }
