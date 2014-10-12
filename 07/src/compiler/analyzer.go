@@ -82,15 +82,17 @@ func readNonterminals (buf bytes.Buffer) {
 // any repetitions will be ignored
 func readTerminals (buf bytes.Buffer) {
 
-	// remove terminal symbols, arrow, and pipe
+	// remove nonterminal symbols, arrow, and pipe
 	re := regexp.MustCompile("(?:\\<[a-zA-Z0-9 ]*\\>|->|\\|)")
 	s := re.ReplaceAllString(buf.String(), " ")
 
 	strs := strings.Fields(s)
 	
 	for _, i := range strs {
-
-		terminals[i] = true
+		// Skip over lambda
+		if i != lambda.name {
+			terminals[i] = true
+		}
 	}
 }
 
