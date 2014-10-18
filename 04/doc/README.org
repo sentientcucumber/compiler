@@ -121,12 +121,12 @@ how to compile and run the program.
 * Regex and DFA
   The first DFA diagram results in the following regex expression:
   #+BEGIN_CENTER
-  a(b) + a | b(a) + b
+  a (b)* a | b (a)* b
   #+END_CENTER
 
   The second DFA diagram results in the following regex expression:
   #+BEGIN_CENTER
-  a (\lambda | (bcda | cda)* )
+  a ( bcda | cda )*
   #+END_CENTER
   
   Below is a deterministic finite automata for the (a | (bc)* d)+
@@ -135,19 +135,18 @@ how to compile and run the program.
   digraph G {
       rankdir = LR
       ratio = expand
-      size = "10,10"
+      size = "10,4"
       edge [dir=one]
 
-      node [shape = doublecircle, label = ""]; b;
+      node [shape = doublecircle, label = ""]; end;
       node [shape = point]; start;
       node [shape = circle, label = ""];
 
-      start -> a
-      a -> b [ label = "a" ]
-      b -> c [ label = "b" ]
-      b -> b [ label = "d" ]
-      a -> a [ label = "a" ]
-      c -> b [ label = "c" ]
+      start -> begin
+      begin -> first [label = "b"]
+      first -> begin [label = "c"]
+      begin -> end   [label = "a"]
+      begin -> end   [label = "d"]
   }
   #+END_SRC
   #+END_CENTER

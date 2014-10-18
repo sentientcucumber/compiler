@@ -16,6 +16,7 @@ type Generator struct {
 	firstSet          Set
 	followSet         Set
 	predictSet        Set
+	predictNonTerm    Set
 	derivesLambda     MarkedVocabulary
 	table             Table
 }
@@ -57,7 +58,6 @@ func (g *Generator) Table() {
 		for _, t := range terms {
 			for j := range g.table.colTitle {
 				if g.table.colTitle[j] == t.name {
-					fmt.Printf("nonterminal %s, terminal %s\n", v, t.name)
 					g.table.array[i][j] = g.table.lookup(Symbol {v, "NONTERMINAL"}, t)
 				}
 			}
@@ -73,9 +73,10 @@ func (g *Generator) predict() {
 	g.MarkLambda(g.Grammar)
 
 	// Initialize sets
-	g.firstSet   = make(map[string][]Symbol, 0)
-	g.followSet  = make(map[string][]Symbol, 0)
-	g.predictSet = make(map[string][]Symbol, 0)
+	g.firstSet       = make(map[string][]Symbol, 0)
+	g.followSet      = make(map[string][]Symbol, 0)
+	g.predictSet     = make(map[string][]Symbol, 0)
+	g.predictNonTerm = make(map[string][]Symbol, 0)
 
 	g.FillFirstSet()
 	g.FillFollowSet()
@@ -87,41 +88,44 @@ func (g *Generator) predict() {
 		// Skip over where rhs is empty
 		strs := strings.Fields(rhs)
 		term := false
-		// fmt.Printf("First ( '%s' )", rhs)
+		fmt.Printf("First ( '%s' )", rhs)
 
 		for i := 0; i < len(strs) && !term; i++ {
 
 			// If the first symbol is a terminal, add it on, it's the
 			// predict set, otherwise, find the first set for the nonterminal
 			if isTermial(strs[i], lhs) {
-				g.predictSet.add(strs[i], Symbol { strs[i], "TERMINAL"})
+				g.predictSet.add(strs[i], Symbol {strs[i], "TERMINAL"})
+				g.predictNonTerm.add(lhs, Symbol {strs[i], "TERMINAL"})
 				term = true
 			} else {
 				for _, v := range g.firstSet[strs[i]] {
 					g.predictSet.add(strs[i], v)
+					g.predictNonTerm.add(lhs, v)
 				}
 
 				// This should be safe in this nonterminal branch, as
 				// terminals will never result in lambda
 				if b, _ := g.firstSet.containsLambda(strs[i]); b {
 					g.predictSet.removeLambda(strs[i])
+					g.predictNonTerm.removeLambda(lhs)
 
 					for _, v := range g.followSet[lhs] {
-
 						// Used to keep the various lambdas in line
 						if v.name != lambda.name {
 							temp := []string { lambda.name, lhs }
 							g.predictSet.add(strings.Join(temp, " "), v)
+							g.predictNonTerm.add(lhs, v)
 						}
 					}
 					
-					// fmt.Printf(" ∪ Follow ( %s ) - λ", lhs)
+					fmt.Printf(" ∪ Follow ( %s ) - λ", lhs)
 				}
 
 				term = true
 			}
 
-			// fmt.Printf(" = ")
+			fmt.Printf(" = ")
 
 			// This looks up the correct name since we stored lambda based on
 			// their non-terminal name (e.g. "λ <expressiontail>")
@@ -130,13 +134,15 @@ func (g *Generator) predict() {
 				strs[i] = strings.Join(temp, " ")
 			}
 
-			// for _, v := range g.predictSet[strs[i]] {
-			// 	fmt.Printf("%s ", v.name)
-			// }
+			for _, v := range g.predictSet[strs[i]] {
+				fmt.Printf("%s ", v.name)
+			}
 
-			// fmt.Printf("\n")
+			fmt.Printf("\n")
 		}
 	}
+
+	g.predictNonTerm.print()
 }
 
 // Mark which parts of a vocabulary (terminals and nonterminals) from a Grammar
@@ -145,8 +151,9 @@ func (g *Generator) predict() {
 // (e.g. "<lhs> -> ")
 func (g *Generator) MarkLambda (gmr Grammar) MarkedVocabulary {
 	g.Grammar = gmr
-	changes := true
 	g.derivesLambda = pullVocabulary(gmr)
+
+	changes := true
 	
 	for k, _ := range g.derivesLambda {
 		g.derivesLambda[k] = false

@@ -85,12 +85,13 @@ how to compile and run the program.
   operators. The following grammers are meant to supplement the existing 
   grammer explained in class.\newline
   We will need the following definitions that were already defined in class.
+
   #+BEGIN_SRC
-   <expression> -> <primary> | <primary> <add op> <expression>
-   <primary>    -> LParen <expression> RParen
-   <primary>    -> Id
-   <primary>    -> IntLiteral
-   <add op>     -> PlusOp | MinusOp
+  <expr>       -> <primary> | <primary> <add op> <expr>
+  <primary>    -> LParen <expr> RParen
+  <primary>    -> Id
+  <primary>    -> IntLiteral
+  <add op>     -> PlusOp | MinusOp
   #+END_SRC
 
 ** Exponential
@@ -98,16 +99,17 @@ how to compile and run the program.
    =MinusOp= and should group from right to left, that is, 
    =A**B**C = A**(B**C)=.
    #+BEGIN_SRC
-   <expression> -> <term> | <expression> PlusOp <term> | 
-                   <expression> MinusOp <term>
-   <term>       -> <factor> | <term> ExpOp <factor>
-   <factor>     -> Id | IntLiteral
+   <expr>   -> <term> | <expr> <add op> <term>
+   <term>   -> <factor> | <term> ExpOp <factor>
+   <factor> -> Id | IntLiteral
    #+END_SRC
 
 ** Equality
-   The equality operator should have lower precednce than plus and minus,
+   The equality operator should have lower precedence than plus and minus,
    and should not group, that is, =(A = B = C)= is not allowed.
+
    #+BEGIN_SRC
-   <bool expression> -> <expression> <bool> <expression>
-   <bool>            -> EqualityOp
+   <statement> -> <bool expr>
+   <bool expr> -> <expr> <bool op> <expr>
+   <bool op>   -> EqualityOp
    #+END_SRC

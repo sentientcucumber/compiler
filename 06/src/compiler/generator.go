@@ -1,5 +1,5 @@
 // Author: Michael Hunsinger
-// Date:   Oct 4 2014
+// Date:   Oct 11 2014
 // File:   generator.go
 // Implementation of a predict generator for LL(1) grammars
 
@@ -8,84 +8,106 @@ package compiler
 import (
 	"fmt"
 	"strings"
-	"sort"
 	"regexp"
 )
 
 type Generator struct {
-	grammar           Grammar
-	FirstSet          map[string][]string
-	FollowSet         map[string][]string
+	Grammar           Grammar
+	FirstSet          Set
+	FollowSet         Set
+	PredictSet        Set
+	predictNonTerm    Set
 	derivesLambda     MarkedVocabulary
 }
 
+// Used throughout the program, this should be const, but can't do so
+var lambda = Symbol { "λ", "LAMBDA" }
+
 // Generates a predict set
 func (g *Generator) Predict() {
-	g.MarkLambda(g.grammar)
+	// Consume the Grammar
+	g.markLambda(g.Grammar)
 
-	g.FirstSet = make(map[string][]string, 0)
-	g.FollowSet = make(map[string][]string, 0)
-	
+	// Initialize sets
+	g.FirstSet   = make(map[string][]Symbol, 0)
+	g.FollowSet  = make(map[string][]Symbol, 0)
+	g.PredictSet = make(map[string][]Symbol, 0)
+	g.predictNonTerm = make(map[string][]Symbol, 0)
+
 	g.FillFirstSet()
 	g.FillFollowSet()
 
-	// fmt.Printf("FirstSet ----------------------------------\n")
-	// printSet(g.FirstSet)
-	// fmt.Printf("FollowSet ----------------------------------\n")
-	// printSet(g.FollowSet)
-
-	for p := range g.grammar.productions {
-		predictSet := make([]string, 0)
+	for p := range g.Grammar.productions {
 		rhs := stripRhs(p)
 		lhs := stripLhs(p)
 
 		// Skip over where rhs is empty
 		strs := strings.Fields(rhs)
 		term := false
-		fmt.Printf("First ( %s )", rhs)
+		fmt.Printf("First ( '%s' )", rhs)
 
 		for i := 0; i < len(strs) && !term; i++ {
 
 			// If the first symbol is a terminal, add it on, it's the
 			// predict set, otherwise, find the first set for the nonterminal
-			if (regexp.MustCompile("[[:punct:]]\\s").MatchString(strs[i]) ||
-				!regexp.MustCompile("<[a-zA-Z\\s]*>").MatchString(strs[i])) &&
-				lhs == "lambda" {
-				predictSet = append(predictSet, strs[i])
+			if isTermial(strs[i], lhs) {
+				g.PredictSet.add(strs[i], Symbol { strs[i], "TERMINAL"})
+				g.predictNonTerm.add(lhs, Symbol {strs[i], "TERMINAL"})
 				term = true
-
 			} else {
-				predictSet = append(predictSet, g.FirstSet[strs[i]]...)
+				for _, v := range g.FirstSet[strs[i]] {
+					g.PredictSet.add(strs[i], v)
+					g.predictNonTerm.add(lhs, v)
+				}
 
 				// This should be safe in this nonterminal branch, as
 				// terminals will never result in lambda
-				if b, _ := contains(g.FirstSet[strs[i]], "lambda"); b {
-					predictSet = remove(predictSet, "lambda")
+				if b, _ := g.FirstSet.containsLambda(strs[i]); b {
+					g.PredictSet.removeLambda(strs[i])
+					g.predictNonTerm.removeLambda(lhs)
 
-					// This bit ensures the set contains unique values
 					for _, v := range g.FollowSet[lhs] {
-						if c, _ := contains(predictSet, v); !c && v != "lambda" {
-							predictSet = append(predictSet, v)
+
+						// Used to keep the various lambdas in line
+						if v.name != lambda.name {
+							temp := []string { lambda.name, lhs }
+							g.PredictSet.add(strings.Join(temp, " "), v)
+							g.predictNonTerm.add(lhs, v)
 						}
 					}
-
+					
 					fmt.Printf(" ∪ Follow ( %s ) - λ", lhs)
 				}
 
-				term = containsTerminal(predictSet)
+				term = true
 			}
+
+			fmt.Printf(" = ")
+
+			// This looks up the correct name since we stored lambda based on
+			// their non-terminal name (e.g. "λ <expressiontail>")
+			if strs[i] == lambda.name {
+				temp := []string { lambda.name, lhs }
+				strs[i] = strings.Join(temp, " ")
+			}
+
+			for _, v := range g.PredictSet[strs[i]] {
+				fmt.Printf("%s ", v.name)
+			}
+
+			fmt.Printf("\n")
 		}
-		
-		fmt.Printf(" = %s\n", predictSet)
 	}
+	fmt.Printf("\nPredict set\n")
+	g.predictNonTerm.print()
 }
 
-// Mark which parts of a vocabulary (terminals and nonterminals) from a grammar
-// can produce lambda. If reading an LL(1) grammar, the grammar should be
+// Mark which parts of a vocabulary (terminals and nonterminals) from a Grammar
+// can produce lambda. If reading an LL(1) Grammar, the Grammar should be
 // formatted that the LHS produces nothing instead of nil or a lambda unicode
 // (e.g. "<lhs> -> ")
-func (g *Generator) MarkLambda (gmr Grammar) MarkedVocabulary {
-	g.grammar = gmr
+func (g *Generator) markLambda (gmr Grammar) MarkedVocabulary {
+	g.Grammar = gmr
 	changes := true
 	g.derivesLambda = pullVocabulary(gmr)
 	
@@ -121,27 +143,26 @@ func (g *Generator) ComputeFirst (s string) (result TermSet) {
 	strs := strings.Fields(s)
 
 	if k := len(strs); k == 0 {
-		result = append(result, "lambda")
+		result = append(result, lambda)
 	} else {
 
-		if b, _ := contains(g.FirstSet[strs[0]], "lambda"); !b {
-			tmp := remove(g.FirstSet[strs[0]], "lambda")
-			result = append(result, tmp...) // g.FirstSet[strs[0]]...)
+		if b, _ := g.FirstSet.containsLambda(strs[0]); !b {
+			temp := g.FirstSet.removeLambda(strs[0])
+			result = append(result, temp[strs[0]]...) // g.FirstSet[strs[0]]...)
+
 		} else {
 			i := 0
-			// tmp := remove(g.FirstSet[strs[i]], "lambda")
-			// result = append(result, tmp...)
 
-			for b, _ := contains(g.FirstSet[strs[0]], "lambda");
-			!b && i < k - 1;
-			b, _ = contains(g.FirstSet[strs[i]], "lambda") {
-				tmp := remove(g.FirstSet[strs[i]], "lambda")
-				result = append(result, tmp...) //g.FirstSet[strs[i]]...)
+			b, _ := g.FirstSet.containsLambda(strs[0])
+
+			for !b && i < k - 1 {
+				temp := g.FirstSet.removeLambda(strs[i])
+				result = append(result, temp[strs[i]]...)
+				b, _ = g.FirstSet.containsLambda(strs[0])
 			}
 
-			// never reaches this point... 
-			if b, _ := contains(g.FirstSet[strs[k - 1]], "lambda"); b && i == k - 1 {
-				result = append(result, "lambda")
+			if b, _ := g.FirstSet.containsLambda(strs[k - 1]); b && i == k - 1 {
+				result = append(result, lambda)
 			}
 		}
 	}
@@ -152,44 +173,42 @@ func (g *Generator) ComputeFirst (s string) (result TermSet) {
 
 // Fill the FirstSet
 func (g *Generator) FillFirstSet() {
-	for A := range g.grammar.nonterminals {
+	for A := range g.Grammar.nonterminals {
 		if g.derivesLambda[A] {
-			g.FirstSet[A] = []string { "lambda" }
+			g.FirstSet[A] = []Symbol { lambda }
 		} else {
-			g.FirstSet[A] = make([]string, 0)
+			g.FirstSet[A] = make([]Symbol, 0)
 		}
 	}
 
-	for a := range g.grammar.terminals {
-		g.FirstSet[a] = []string { a }
+	for a := range g.Grammar.terminals {
+		g.FirstSet[a] = []Symbol { Symbol { a, "TERMINAL" } }
 
-		for A := range g.grammar.nonterminals {
-			for p := range g.grammar.productions {
+		for A := range g.Grammar.nonterminals {
+			for p := range g.Grammar.productions {
 				rhs := stripRhs(p)
 				lhs := stripLhs(p)
 
-				// Extra bit to make sure this is a "set"
+				// Added bit of logic to ensure SymbolCategory is correct
 				if _, s := firstTerm(rhs); s == a && lhs == A {
-					if b, _ := contains(g.FirstSet[A], a); !b {
-						g.FirstSet[A] = append(g.FirstSet[A], a);
+					if a == lambda.name {
+						g.FirstSet.add(A, lambda)
+					} else {
+						g.FirstSet.add(A, Symbol { a, "TERMINAL" })
 					}
 				}
 			}
 		}
 	}
 
-	// TODO this is poor programming... 
 	for i := 0; i < 2; i++ {
-		for p := range g.grammar.productions {
+		for p := range g.Grammar.productions {
 			lhs := stripLhs(p)
 			rhs := stripRhs(p)
 			first := g.ComputeFirst(rhs)
 
-			// Extra bit to make sure this is a "set"
-			for i, _ := range first {
-				if b, _ := contains(g.FirstSet[lhs], first[i]); !b {
-					g.FirstSet[lhs] = append(g.FirstSet[lhs], first[i])
-				}
+			for _, v := range first {
+				g.FirstSet.add(lhs, v)
 			}
 		}
 	}
@@ -197,32 +216,25 @@ func (g *Generator) FillFirstSet() {
 
 // Fill the FollowSet
 func (g *Generator) FillFollowSet() {
-	for A := range g.grammar.nonterminals {
-		g.FollowSet[A] = make([]string, 0)
+	for A := range g.Grammar.nonterminals {
+		g.FollowSet[A] = make([]Symbol, 0)
 	}
 
-	// TODO this is also poor programming...
-	g.FollowSet["<S>"] = []string { "lambda" }
+	start := findStartSymbol(g.Grammar)
+	g.FollowSet[start.name] = []Symbol {lambda}
 
 	for i := 0; i < 2; i++ {
-		for p := range g.grammar.productions {
+		for p := range g.Grammar.productions {
 			rhs := stripRhs(p)
 			lhs := stripLhs(p)
-			a := stripNonTerminals(rhs)
+			a   := stripNonTerminals(rhs)
 			
 			for _, B := range a {
 				next := nextSymbol(rhs, B)
-				g.FollowSet[B] = append(g.FollowSet[B], g.FirstSet[next]...)
+				g.FollowSet.add(B, g.FirstSet[next.name]...)
 
-				if b, _ := contains(g.ComputeFirst(next), "lambda");
-				b || len(g.FirstSet[next]) == 0 {
-
-					// This bit added to maintain the set contains unique values
-					for _, v := range g.FollowSet[lhs] {
-						if c, _ := contains(g.FollowSet[B], v); !c {
-							g.FollowSet[B] = append(g.FollowSet[B], v)
-						}
-					}
+				if b, _ := g.FirstSet.containsLambda(next.name); b {
+					g.FollowSet.add(B, g.FollowSet[lhs]...)
 				}
 			}
 		}
@@ -230,7 +242,7 @@ func (g *Generator) FillFollowSet() {
 }
 
 // Checks to see if a string exists in an array of strings
-func contains(a []string, v string) (found bool, ind int) {
+func contains(a []Symbol, v Symbol) (found bool, ind int) {
 	found = false
 
 	for i, e := range a {
@@ -245,7 +257,7 @@ func contains(a []string, v string) (found bool, ind int) {
 }
 
 // Removes a string from an array of strings
-func remove(a []string, s string) []string {
+func remove(a []Symbol, s Symbol) []Symbol {
 
 	n := a
 	if b, i := contains(n, s); b {
@@ -256,7 +268,7 @@ func remove(a []string, s string) []string {
 	return n
 }
 
-// Pull the vocabulary from a grammar
+// Pull the vocabulary from a Grammar
 func pullVocabulary (g Grammar) (v MarkedVocabulary) {
 	v = make(map[string]bool, 0)
 
@@ -271,59 +283,44 @@ func pullVocabulary (g Grammar) (v MarkedVocabulary) {
 	return
 }
 
-// Helper function to print a map
-func printMap(m map[string]bool) {
-	var keys []string
-
-	for k := range m {
-		keys = append(keys, k)
-	}
-
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		fmt.Printf("key '%s', value '%t'\n", k, m[k])
-	}
-}
-
-// Helper function to print a map
-func printSet(m map[string][]string) {
-	var keys []string
-
-	for k := range m {
-		keys = append(keys, k)
-	}
-
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		fmt.Printf("key '%s', value '%v'\n", k, m[k])
-	}
-}
-
 // Grabs the next symbol
-func nextSymbol(s, v string) string {
+func nextSymbol(s, v string) Symbol {
+	a := make([]Symbol, 0)
 
-	strs := strings.Fields(s)
+	for _, v := range strings.Fields(s) {
+		a = append(a, Symbol { name: v })
+	}
 
-	if b, i := contains(strs, v); b {
-		if i + 1 < len(strs) {
-			return strs[i + 1]
+	if b, i := contains(a, Symbol { name: v }); b {
+		if i + 1 < len(a) {
+			return a[i + 1]
 		}
 	}
 
-	return "lambda"
+	return lambda
 }
 
-// Determines if a set has a terminal symbol
-func containsTerminal(set []string) (found bool) {
+// Determines if the string is terminal or not
+func isTermial(s string, l string) bool {
+	if (regexp.MustCompile("[[:punct:]]\\s").MatchString(s) ||
+		!regexp.MustCompile("<[a-zA-Z\\s]*>").MatchString(s)) &&
+		l == "λ" {
+		return true
+	}
 
-	for _, v := range set {
-		if !regexp.MustCompile("<[a-zA-Z\\s]*>").MatchString(v) {
-			found = true
-			return
+	return false
+}
+
+// Determine's the start symbol in a Grammar, must be defined in the Grammar
+// passed in (e.g. <Start> -> <nonterminal> $)
+func findStartSymbol(g Grammar) Symbol {
+
+	for p := range g.productions {
+		if strings.Index(p, "$") > 0 {
+			start := stripLhs(p)
+			return Symbol { start, "NONTERMINAL"}
 		}
 	}
 
-	return
+	panic(fmt.Errorf("No start symbol defined in the Grammar"))
 }

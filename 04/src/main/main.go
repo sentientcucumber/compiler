@@ -29,11 +29,11 @@ func main() {
 	reader := bytes.NewReader(src)
 	s := compiler.Scanner{Reader: *reader}
 	tokenCode := 0
-	tokenArray := make([]int, 100)
+	var tokenArray []int
 
 	for i := 0; tokenCode != compiler.EofSym && i < cap(tokenArray); i++ {
 		s.Scan(&tokenCode, bytes.NewBuffer(*new([]byte)))
-		tokenArray[i] = tokenCode
+		tokenArray = append(tokenArray, tokenCode)
 	}
 
 	PrintTokens(tokenArray)
