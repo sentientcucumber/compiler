@@ -78,22 +78,47 @@ func (t Table) print() {
 
 // Performs a lookup based on a terminal and nonterminal symbol and returns the
 // production number
-func (t *Table) lookup(n, x Symbol) (i int) {
-	for k, v := range t.production {
+func (t *Table) lookup(n, x Symbol, g *Generator) int {
+	var p int
+	l := false
+	c := 0
+
+	for i, v := range t.production {
 		lhs := stripLhs(v)
 		rhs := stripRhs(v)
 		strs := strings.Fields(rhs)
 
+		// fmt.Printf("%d %s", i, v)
+		// If the first symbol on RHS is a terminal, see that it matches and
+		// return the production. Otherwise, increment production counter
+		// if there's only one, it must be this production for all terminals
 		if lhs == n.name {
-			i = k
-			
-			if x.name == strs[0] {
-				i = k
-				return 
+			if strs[0] == x.name {
+				return i
+			} else if strs[0] == lambda.name {
+				p = i
+				l = true
+			} else if !isTerminal(strs[0], v) {
+				for _, j := range g.computeFirst(strs[0]) {
+					if j.name == x.name {
+						// p = i
+						return i
+					}
+				}
+			} else if !l {
+				c++
+				p = i
 			}
 		}
 	}
 
-	return
-}
+	if c == 1 {
+		return p
+	}
 
+	if l {
+		return p
+	}
+
+	return 0
+}
