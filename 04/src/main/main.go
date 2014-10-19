@@ -31,7 +31,7 @@ func main() {
 	tokenCode := 0
 	var tokenArray []int
 
-	for i := 0; tokenCode != compiler.EofSym && i < cap(tokenArray); i++ {
+	for i := 0; tokenCode != compiler.EofSym; i++ {
 		s.Scan(&tokenCode, bytes.NewBuffer(*new([]byte)))
 		tokenArray = append(tokenArray, tokenCode)
 	}
@@ -40,7 +40,6 @@ func main() {
 }
 
 func PrintTokens(t []int) {
-
 	tokens := map[int]string{
 		1:  "BeginSym",
 		2:  "EndSym",

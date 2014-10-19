@@ -12,7 +12,7 @@ import (
 )
 
 type Table struct {
-	production  map[int]string
+	Production  map[int]string
 	rowTitle    []string
 	colTitle    []string
 	rowCount    int
@@ -20,7 +20,7 @@ type Table struct {
 	array       [][]int
 }
 
-// Sets up production, rowTitle, colTitle, rowCount, colCount
+// Sets up Production, rowTitle, colTitle, rowCount, colCount
 func (t *Table) init(g Grammar) {
 	t.rowCount = len(g.nonterminals)
 
@@ -50,7 +50,7 @@ func (t *Table) init(g Grammar) {
 	sort.Strings(t.colTitle)
 	sort.Strings(t.rowTitle)
 
-	t.production = g.staticProd
+	t.Production = g.staticProd
 }
 
 // Prints out the table
@@ -77,21 +77,21 @@ func (t Table) print() {
 }
 
 // Performs a lookup based on a terminal and nonterminal symbol and returns the
-// production number
+// Production number
 func (t *Table) lookup(n, x Symbol, g *Generator) int {
 	var p int
 	l := false
 	c := 0
 
-	for i, v := range t.production {
+	for i, v := range t.Production {
 		lhs := stripLhs(v)
 		rhs := stripRhs(v)
 		strs := strings.Fields(rhs)
 
-		// fmt.Printf("%d %s", i, v)
+
 		// If the first symbol on RHS is a terminal, see that it matches and
-		// return the production. Otherwise, increment production counter
-		// if there's only one, it must be this production for all terminals
+		// return the Production. Otherwise, increment Production counter
+		// if there's only one, it must be this Production for all terminals
 		if lhs == n.name {
 			if strs[0] == x.name {
 				return i
@@ -121,4 +121,25 @@ func (t *Table) lookup(n, x Symbol, g *Generator) int {
 	}
 
 	return 0
+}
+
+// To be used after a table has been initialized
+func (t *Table) FindProd(x, a Symbol) int {
+	var i, j int
+
+	for y, v := range t.rowTitle {
+		if v == x.name {
+			i = y
+			break
+		}
+	}
+
+	for z, v := range t.colTitle {
+		if v == a.name {
+			j = z
+			break
+		}
+	}
+
+	return t.array[i][j]
 }

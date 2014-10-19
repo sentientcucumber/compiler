@@ -46,3 +46,4 @@ func (s *Stack) Peek() (v interface{}) {
 func (s *Stack) Empty() bool {
 	return s.size < 1
 }
+

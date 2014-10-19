@@ -25,7 +25,7 @@ type Generator struct {
 var lambda = Symbol { "λ", "LAMBDA" }
 
 // Generate a LL(1) table
-func (g *Generator) Table() {
+func (g *Generator) GetTable() Table {
 	g.table.init(g.Grammar)
 
 	g.table.array = make([][]int, g.table.rowCount)
@@ -38,7 +38,6 @@ func (g *Generator) Table() {
 
 	for i, v := range g.table.rowTitle {
 		var terms []Symbol
-		
 		terms = g.predictNonTerm[v]
 
 		for _, t := range terms {
@@ -50,7 +49,7 @@ func (g *Generator) Table() {
 		}
 	}
 
-	g.table.print()
+	return g.table
 }
 
 // Generates a predict set
@@ -74,7 +73,6 @@ func (g *Generator) predict() {
 		// Skip over where rhs is empty
 		strs := strings.Fields(rhs)
 		term := false
-		// fmt.Printf("First ( '%s' )", rhs)
 
 		for i := 0; i < len(strs) && !term; i++ {
 
@@ -104,14 +102,10 @@ func (g *Generator) predict() {
 							g.predictNonTerm.add(lhs, v)
 						}
 					}
-					
-					// fmt.Printf(" ∪ Follow ( %s ) - λ", lhs)
 				}
 
 				term = true
 			}
-
-			// fmt.Printf(" = ")
 
 			// This looks up the correct name since we stored lambda based on
 			// their non-terminal name (e.g. "λ <expressiontail>")
@@ -119,12 +113,6 @@ func (g *Generator) predict() {
 				temp := []string { lambda.name, lhs }
 				strs[i] = strings.Join(temp, " ")
 			}
-
-			// for _, v := range g.predictSet[strs[i]] {
-			// 	fmt.Printf("%s ", v.name)
-			// }
-
-			// fmt.Printf("\n")
 		}
 	}
 }
@@ -343,7 +331,7 @@ func isTerminal(s string, l string) bool {
 func findStartSymbol(g Grammar) Symbol {
 
 	for p := range g.productions {
-		if strings.Index(p, "$") > 0 {
+		if strings.Index(p, "EofSym") > 0 {
 			start := stripLhs(p)
 			return Symbol { start, "NONTERMINAL"}
 		}
