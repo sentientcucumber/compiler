@@ -3,12 +3,18 @@
 // File:   parser.go
 // Parser implementation for the compiler
 
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// There are more Parser functions in the semantic.go file, they are separated
+// to keep things organized
+
 package compiler
 
 import (
 	"fmt"
 	"bytes"
 	"strings"
+	"bufio"
+	"strconv"
 )
 
 type Parser struct {
@@ -16,6 +22,12 @@ type Parser struct {
 	Scanner   Scanner
 	Table     Table
 	Reader    bytes.Reader
+	Writer    bufio.Writer
+
+	maxSymbol   int
+	maxTemp     int
+	lastSymbol  int
+	SymbolTable []string
 }
 
 type Input struct {
@@ -23,16 +35,31 @@ type Input struct {
 	i         int
 }
 
-func (p *Parser) Driver() {
+var (
+	ss           []Symbol
+	currentIndex int
+	topIndex     int
+	leftIndex    int
+	rightIndex   int 
+)
 
-	tokenCode := 0
+func (p *Parser) Compiler() {
+	// Initialize parse stack
 	start := findStartSymbol(p.Grammar)
 	stack := new (Stack)
 	stack.Push(start)
+
+	// Initialize semantic stack
+	rightIndex = 0
+	leftIndex = 0
+	currentIndex = 1
+	topIndex = 2
+	ss = []Symbol {}
+	ss = append(ss, start)
+
+	tokenCode := 0
 	p.Scanner.Scan(&tokenCode, bytes.NewBuffer(*new([]byte)))
-
 	state := Input { strings.Fields(p.getInput()), 0 }
-
 	printHeader()
 
 	for !stack.Empty() {
@@ -45,19 +72,36 @@ func (p *Parser) Driver() {
 				fmt.Printf("%s\n", printStack(*stack))
 
 				stack.Pop()
+				stack.Push(EOPSymbol(leftIndex, rightIndex, currentIndex, topIndex))
+
 				rhs := stripRhs(p.Table.Production[i])
 				strs := strings.Fields(rhs)
 				
+				// Add symbols in reverse order for the parse stack
 				for i := len(strs) - 1; i >= 0; i-- {
 					if strs[i] != lambda.name {
-						stack.Push(Symbol {name: strs[i]})
+						stack.Push(Symbol { name: strs[i] })
 					}
 				}
+
+				count := 0
+				// Add symbols in order for the semantic stack
+				for i := 0; i < len(strs); i++ {
+					if strs[i] != lambda.name && strs[i][0] != '#' {
+						ss = append(ss, Symbol { name: strs[i] })
+						count++
+					}
+				}
+
+				// Fix indicies 
+				leftIndex = currentIndex
+				rightIndex = topIndex
+				currentIndex = rightIndex
+				topIndex += count
+			} else {
+				panic(fmt.Errorf("Expected nonterminal, but scanned another symbol"))
 			}
-
-
 		} else if _, ok := p.Grammar.terminals[x.name]; ok {
-
 			if x.name == tokenString(tokenCode) {
 				fmt.Printf("Match!\t\t")
 				printInput(&state, true)
@@ -65,11 +109,17 @@ func (p *Parser) Driver() {
 
 				stack.Pop()
 				p.Scanner.Scan(&tokenCode, bytes.NewBuffer(*new([]byte)))
+				currentIndex++
 			} else {
 				panic(fmt.Errorf("Expected %s, scanned %s", tokenString(tokenCode), x.name))
 			}
+		} else if x.category == EOP {
+			leftIndex, rightIndex, currentIndex, topIndex = unpackEOP(x)
+			stack.Pop()
+		} else {
+			stack.Pop()
+			fmt.Print("%v", x)
 		}
-
 	}
 }
 
@@ -129,4 +179,24 @@ func printInput(s *Input, d bool) {
 	if d {
 		s.i++
 	}
+}
+
+func EOPSymbol (l, r, c, t int) Symbol {
+	lstr := strconv.Itoa(l)
+	rstr := strconv.Itoa(r)
+	cstr := strconv.Itoa(c)
+	tstr := strconv.Itoa(t)
+
+	return Symbol { lstr + " " + rstr + " " + cstr + " " + tstr, EOP }
+}
+
+func unpackEOP (s Symbol) (l, r, c, t int) {
+	strs := strings.Fields(s.name)
+
+	l, _ = strconv.Atoi(strs[0])
+	r, _ = strconv.Atoi(strs[1])
+	c, _ = strconv.Atoi(strs[2])
+	t, _ = strconv.Atoi(strs[3])
+
+	return
 }

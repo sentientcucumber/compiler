@@ -46,5 +46,5 @@ func main() {
 	p.Scanner = compiler.Scanner { Reader: *pgmReader }
 	p.Table = g.GetTable()
 
-	p.Driver()
+	p.Compiler()
 }

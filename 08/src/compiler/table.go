@@ -88,13 +88,15 @@ func (t *Table) lookup(n, x Symbol, g *Generator) int {
 		rhs := stripRhs(v)
 		strs := strings.Fields(rhs)
 
-
 		// If the first symbol on RHS is a terminal, see that it matches and
 		// return the Production. Otherwise, increment Production counter
 		// if there's only one, it must be this Production for all terminals
 		if lhs == n.name {
-			if strs[0] == x.name {
+			fmt.Printf("here")
+			if strs[0][0] == '#' && strs[1] == x.name {
 				return i
+				// if strs[0] == x.name {
+				// 	return i
 			} else if strs[0] == lambda.name {
 				p = i
 				l = true

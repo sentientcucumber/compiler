@@ -1,7 +1,7 @@
 // Author: Michael Hunsinger
 // Date:   Sept 18 2014
-// File:   types.go
-// Lists the various types used in compilers
+// File:   tokens.go
+// Lists the various enumerations used in compiler
 
 package compiler
 

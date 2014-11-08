@@ -17,6 +17,7 @@ const (
 	TERMINAL      SymbolCategory = "TERMINAL"
 	NONTERMINAL   SymbolCategory = "NONTERMINAL"
 	LAMBDA        SymbolCategory = "LAMBDA"
+	EOP           SymbolCategory = "EOP"
 )
 
 // Definition of a MarkedVocabulary
@@ -35,3 +36,32 @@ type Grammar struct {
 	lhs           map[string]bool
 }
 
+// Operator type
+type Operator string
+
+// ExprKind type
+type ExprKind string
+
+// OpRec type
+type OpRec struct {
+	Op          int
+}
+
+// ExprRec type
+type ExprRec struct {
+	Kind        ExprKind
+	Name        string
+	Val         int
+}
+
+// Enumerations for kinds
+const (
+	IdExpr      ExprKind = "IdExpr"
+	LiteralExpr ExprKind = "LiteralExpr"
+	TempExpr    ExprKind = "TempExpr"
+)
+
+type SemanticRecord struct {
+	exprRec     ExprRec
+	opRec       OpRec
+}
