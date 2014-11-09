@@ -27,8 +27,8 @@ var lambda = Symbol { "λ", "LAMBDA" }
 // Generate a LL(1) table
 func (g *Generator) GetTable() Table {
 	g.table.init(g.Grammar)
-
 	g.table.array = make([][]int, g.table.rowCount)
+
 	for i := range g.table.array {
 		g.table.array[i] = make([]int, g.table.colCount)
 	}
@@ -37,8 +37,7 @@ func (g *Generator) GetTable() Table {
 	g.predict()
 
 	for i, v := range g.table.rowTitle {
-		var terms []Symbol
-		terms = g.predictNonTerm[v]
+		terms := g.predictNonTerm[v]
 
 		for _, t := range terms {
 			for j := range g.table.colTitle {
@@ -70,6 +69,9 @@ func (g *Generator) predict() {
 		rhs := stripRhs(p)
 		lhs := stripLhs(p)
 
+		re := regexp.MustCompile("#[A-Za-z0-9]*")
+		rhs = re.ReplaceAllString(rhs, "")
+
 		// Skip over where rhs is empty
 		strs := strings.Fields(rhs)
 		term := false
@@ -95,6 +97,7 @@ func (g *Generator) predict() {
 					g.predictNonTerm.removeLambda(lhs)
 
 					for _, v := range g.followSet[lhs] {
+
 						// Used to keep the various lambdas in line
 						if v.name != lambda.name {
 							temp := []string { lambda.name, lhs }
@@ -103,7 +106,6 @@ func (g *Generator) predict() {
 						}
 					}
 				}
-
 				term = true
 			}
 
@@ -161,13 +163,11 @@ func (g *Generator) computeFirst (s string) (result TermSet) {
 	if k := len(strs); k == 0 {
 		result = append(result, lambda)
 	} else {
-
 		if b, _ := g.firstSet.containsLambda(strs[0]); !b {
 			temp := g.firstSet.removeLambda(strs[0])
 			result = append(result, temp[strs[0]]...)
 		} else {
 			i := 0
-
 			b, _ := g.firstSet.containsLambda(strs[0])
 
 			for !b && i < k - 1 {
@@ -220,6 +220,10 @@ func (g *Generator) FillFirstSet() {
 		for p := range g.Grammar.productions {
 			lhs := stripLhs(p)
 			rhs := stripRhs(p)
+
+			// Remove any semantic information
+			re := regexp.MustCompile("\\#[a-zA-Z0-9]*")
+			rhs = re.ReplaceAllString(rhs, "")
 			first := g.computeFirst(rhs)
 
 			for _, v := range first {
@@ -273,8 +277,8 @@ func contains(a []Symbol, v Symbol) (found bool, ind int) {
 
 // Removes a string from an array of strings
 func remove(a []Symbol, s Symbol) []Symbol {
-
 	n := a
+
 	if b, i := contains(n, s); b {
 		copy(n[i:], n[i+1:])
 		n = n[:len(n) - 1]

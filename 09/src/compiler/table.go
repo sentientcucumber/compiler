@@ -9,6 +9,7 @@ import (
 	"sort"
 	"fmt"
 	"strings"
+	"regexp"
 )
 
 type Table struct {
@@ -86,14 +87,17 @@ func (t *Table) lookup(n, x Symbol, g *Generator) int {
 	for i, v := range t.Production {
 		lhs := stripLhs(v)
 		rhs := stripRhs(v)
+		
+		re := regexp.MustCompile("#[A-Za-z0-9]*")
+		rhs = re.ReplaceAllString(rhs, "")
 		strs := strings.Fields(rhs)
-
 
 		// If the first symbol on RHS is a terminal, see that it matches and
 		// return the Production. Otherwise, increment Production counter
 		// if there's only one, it must be this Production for all terminals
 		if lhs == n.name {
 			if strs[0] == x.name {
+				// fmt.Printf("%s, %s, %d\n", n.name, x.name, i)
 				return i
 			} else if strs[0] == lambda.name {
 				p = i
@@ -101,7 +105,7 @@ func (t *Table) lookup(n, x Symbol, g *Generator) int {
 			} else if !isTerminal(strs[0], v) {
 				for _, j := range g.computeFirst(strs[0]) {
 					if j.name == x.name {
-						// p = i
+						// fmt.Printf("%s, %s, %d\n", n.name, x.name, i)
 						return i
 					}
 				}
@@ -113,13 +117,16 @@ func (t *Table) lookup(n, x Symbol, g *Generator) int {
 	}
 
 	if c == 1 {
+		// fmt.Printf("%s, %s\n", n.name, x.name)
 		return p
 	}
 
 	if l {
+		// fmt.Printf("%s, %s\n", n.name, x.name)
 		return p
 	}
 
+	// fmt.Printf("%s, %s\n", n.name, x.name)
 	return 0
 }
 

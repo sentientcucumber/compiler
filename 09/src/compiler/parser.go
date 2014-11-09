@@ -50,26 +50,22 @@ func (p *Parser) Compiler() {
 	stack.Push(start)
 
 	// Initialize semantic stack
-	rightIndex = 0
-	leftIndex = 0
-	currentIndex = 1
-	topIndex = 2
+	rightIndex = 0; leftIndex = 0; currentIndex = 1; topIndex = 2
 	ss = []Symbol {}
 	ss = append(ss, start)
 
 	tokenCode := 0
 	p.Scanner.Scan(&tokenCode, bytes.NewBuffer(*new([]byte)))
 	state := Input { strings.Fields(p.getInput()), 0 }
-	printHeader()
 
 	for !stack.Empty() {
 		x := stack.Peek().(Symbol)
 
 		if _, ok := p.Grammar.nonterminals[x.name]; ok {
 			if i := p.Table.FindProd(x, Symbol {name: tokenString(tokenCode)}); i > 0 {
-				fmt.Printf("Predict %d\t", i)
+				// fmt.Printf("Predict %d\t", i)
 				printInput(&state, false)
-				fmt.Printf("%s\n", printStack(*stack))
+				fmt.Printf("PS:\t%s\n", printStack(*stack))
 
 				stack.Pop()
 				stack.Push(EOPSymbol(leftIndex, rightIndex, currentIndex, topIndex))
@@ -84,8 +80,8 @@ func (p *Parser) Compiler() {
 					}
 				}
 
-				count := 0
 				// Add symbols in order for the semantic stack
+				count := 0
 				for i := 0; i < len(strs); i++ {
 					if strs[i] != lambda.name && strs[i][0] != '#' {
 						ss = append(ss, Symbol { name: strs[i] })
@@ -93,19 +89,20 @@ func (p *Parser) Compiler() {
 					}
 				}
 
-				// Fix indicies 
+				// Update indicies 
 				leftIndex = currentIndex
 				rightIndex = topIndex
 				currentIndex = rightIndex
 				topIndex += count
 			} else {
-				panic(fmt.Errorf("Expected nonterminal, but scanned another symbol"))
+				panic(fmt.Errorf("Could not find a production for <%s, %s>",
+					x.name, tokenString(tokenCode)))
 			}
 		} else if _, ok := p.Grammar.terminals[x.name]; ok {
 			if x.name == tokenString(tokenCode) {
-				fmt.Printf("Match!\t\t")
+				// fmt.Printf("Match!\t\t")
 				printInput(&state, true)
-				fmt.Printf("%s\n", printStack(*stack))
+				fmt.Printf("PS:\t%s\n", printStack(*stack))
 
 				stack.Pop()
 				p.Scanner.Scan(&tokenCode, bytes.NewBuffer(*new([]byte)))
@@ -118,7 +115,7 @@ func (p *Parser) Compiler() {
 			stack.Pop()
 		} else {
 			stack.Pop()
-			fmt.Print("%v", x)
+			fmt.Printf("%s\n", x.name)
 		}
 	}
 }
@@ -174,7 +171,7 @@ func (p *Parser) getInput() string {
 }
 
 func printInput(s *Input, d bool) {
-	fmt.Printf("%s\t\t", s.str[s.i : len(s.str)])
+	fmt.Printf("Input:\t%s\n", s.str[s.i : len(s.str)])
 
 	if d {
 		s.i++
@@ -187,7 +184,7 @@ func EOPSymbol (l, r, c, t int) Symbol {
 	cstr := strconv.Itoa(c)
 	tstr := strconv.Itoa(t)
 
-	return Symbol { lstr + " " + rstr + " " + cstr + " " + tstr, EOP }
+	return Symbol { "EOP(" + lstr + ", " + rstr + ", " + cstr + ", " + tstr + ")", EOP }
 }
 
 func unpackEOP (s Symbol) (l, r, c, t int) {

@@ -104,8 +104,8 @@ func readNonterminals (buf bytes.Buffer) {
 // Reads all the terminals in a buffer, notice this passes them into a set so
 // any repetitions will be ignored
 func readTerminals (buf bytes.Buffer) {
-	// remove terminal symbols, arrow, and pipe
-	re := regexp.MustCompile("(?:\\<[a-zA-Z0-9 ]*\\>|->|\\|)")
+	// remove terminal symbols, arrow, semantic symbols, and pipe
+	re := regexp.MustCompile("(?:\\<[a-zA-Z0-9 ]*\\>|\\#[a-zA-Z0-9]*|->|\\|)")
 	s := re.ReplaceAllString(buf.String(), " ")
 
 	strs := strings.Fields(s)

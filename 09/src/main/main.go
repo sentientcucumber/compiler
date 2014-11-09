@@ -15,6 +15,14 @@ import (
 )
 
 func main() {
+	// foo := "#Start BeginSym <stmtlist> EndSym #Finish"
+	// strs := strings.Fields(foo)
+
+	// copy(strs[0:], strs[1:])
+	// strs[len(strs) - 1] = ""
+	// strs = strs[:len(strs) - 1]
+	// fmt.Printf("%v", strs)
+
 	if len(os.Args) < 3 {
 		fmt.Printf("usage: ./main grammar_file program_file\n")
 		os.Exit(1)

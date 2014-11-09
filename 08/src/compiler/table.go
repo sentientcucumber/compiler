@@ -92,24 +92,22 @@ func (t *Table) lookup(n, x Symbol, g *Generator) int {
 		// return the Production. Otherwise, increment Production counter
 		// if there's only one, it must be this Production for all terminals
 		if lhs == n.name {
-			fmt.Printf("here")
-			if strs[0][0] == '#' && strs[1] == x.name {
+			if strs[0] == x.name {
 				return i
-				// if strs[0] == x.name {
-				// 	return i
 			} else if strs[0] == lambda.name {
 				p = i
 				l = true
 			} else if !isTerminal(strs[0], v) {
 				for _, j := range g.computeFirst(strs[0]) {
 					if j.name == x.name {
-						// p = i
 						return i
 					}
 				}
 			} else if !l {
 				c++
 				p = i
+			} else {
+				
 			}
 		}
 	}
