@@ -88,7 +88,7 @@ func (t *Table) lookup(n, x Symbol, g *Generator) int {
 		lhs := stripLhs(v)
 		rhs := stripRhs(v)
 		
-		re := regexp.MustCompile("#[A-Za-z0-9]*")
+		re := regexp.MustCompile("#[A-Za-z0-9\\(\\)\\$,]*")
 		rhs = re.ReplaceAllString(rhs, "")
 		strs := strings.Fields(rhs)
 
@@ -97,7 +97,6 @@ func (t *Table) lookup(n, x Symbol, g *Generator) int {
 		// if there's only one, it must be this Production for all terminals
 		if lhs == n.name {
 			if strs[0] == x.name {
-				// fmt.Printf("%s, %s, %d\n", n.name, x.name, i)
 				return i
 			} else if strs[0] == lambda.name {
 				p = i

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"bufio"
 	"strconv"
+	"regexp"
 )
 
 type Parser struct {
@@ -63,9 +64,9 @@ func (p *Parser) Compiler() {
 
 		if _, ok := p.Grammar.nonterminals[x.name]; ok {
 			if i := p.Table.FindProd(x, Symbol {name: tokenString(tokenCode)}); i > 0 {
-				// fmt.Printf("Predict %d\t", i)
 				printInput(&state, false)
-				fmt.Printf("PS:\t%s\n", printStack(*stack))
+				fmt.Printf("PS:\t\t%s\n", printStack(*stack))
+				fmt.Printf("SS:\t\t%s\n", printArray(ss))
 
 				stack.Pop()
 				stack.Push(EOPSymbol(leftIndex, rightIndex, currentIndex, topIndex))
@@ -84,25 +85,25 @@ func (p *Parser) Compiler() {
 				count := 0
 				for i := 0; i < len(strs); i++ {
 					if strs[i] != lambda.name && strs[i][0] != '#' {
-						ss = append(ss, Symbol { name: strs[i] })
+						ss = insert(ss, 0, Symbol { name: strs[i] })
+						// ss = append(ss, Symbol { name: strs[i] })
 						count++
 					}
 				}
-
-				// Update indicies 
-				leftIndex = currentIndex
-				rightIndex = topIndex
-				currentIndex = rightIndex
-				topIndex += count
+				
+				// Print then update indices
+				fmt.Printf("Indices:(%d, %d, %d, %d)\n", leftIndex, rightIndex, currentIndex, topIndex)
+				leftIndex = currentIndex; rightIndex = topIndex; currentIndex = rightIndex; topIndex += count
 			} else {
 				panic(fmt.Errorf("Could not find a production for <%s, %s>",
 					x.name, tokenString(tokenCode)))
 			}
 		} else if _, ok := p.Grammar.terminals[x.name]; ok {
 			if x.name == tokenString(tokenCode) {
-				// fmt.Printf("Match!\t\t")
 				printInput(&state, true)
-				fmt.Printf("PS:\t%s\n", printStack(*stack))
+				fmt.Printf("PS:\t\t%s\n", printStack(*stack))
+				fmt.Printf("SS:\t\t%s\n", printArray(ss))
+				fmt.Printf("Indices:(%d, %d, %d, %d)\n", leftIndex, rightIndex, currentIndex, topIndex)
 
 				stack.Pop()
 				p.Scanner.Scan(&tokenCode, bytes.NewBuffer(*new([]byte)))
@@ -117,6 +118,7 @@ func (p *Parser) Compiler() {
 			stack.Pop()
 			fmt.Printf("%s\n", x.name)
 		}
+		fmt.Printf("\n")
 	}
 }
 
@@ -188,7 +190,10 @@ func EOPSymbol (l, r, c, t int) Symbol {
 }
 
 func unpackEOP (s Symbol) (l, r, c, t int) {
-	strs := strings.Fields(s.name)
+	temp := s.name
+	re := regexp.MustCompile("[A-Z\\W]*")
+	temp = re.ReplaceAllString(temp, " ")
+	strs := strings.Fields(temp)
 
 	l, _ = strconv.Atoi(strs[0])
 	r, _ = strconv.Atoi(strs[1])
@@ -196,4 +201,22 @@ func unpackEOP (s Symbol) (l, r, c, t int) {
 	t, _ = strconv.Atoi(strs[3])
 
 	return
+}
+
+func printArray (s []Symbol) string {
+	b := bytes.NewBuffer(*new ([]byte))
+
+	for _, v := range s {
+		b.WriteString(v.name + " ")
+	}
+
+	return b.String()
+}
+
+func insert(slice []Symbol, index int, value Symbol) []Symbol {
+	slice = append(slice[0:], append(make([]Symbol, 1), slice[:0]...)...)
+	copy(slice[index + 1:], slice[index:])
+	slice[index] = value
+
+	return slice
 }

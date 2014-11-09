@@ -16,7 +16,7 @@ type Generator struct {
 	firstSet          Set
 	followSet         Set
 	predictSet        Set
-	predictNonTerm    Set
+	predictTerm       Set
 	derivesLambda     MarkedVocabulary
 	table             Table
 }
@@ -37,8 +37,7 @@ func (g *Generator) GetTable() Table {
 	g.predict()
 
 	for i, v := range g.table.rowTitle {
-		terms := g.predictNonTerm[v]
-
+		terms := g.predictTerm[v]
 		for _, t := range terms {
 			for j := range g.table.colTitle {
 				if g.table.colTitle[j] == t.name {
@@ -60,7 +59,7 @@ func (g *Generator) predict() {
 	g.firstSet       = make(map[string][]Symbol, 0)
 	g.followSet      = make(map[string][]Symbol, 0)
 	g.predictSet     = make(map[string][]Symbol, 0)
-	g.predictNonTerm = make(map[string][]Symbol, 0)
+	g.predictTerm    = make(map[string][]Symbol, 0)
 
 	g.FillFirstSet()
 	g.FillFollowSet()
@@ -69,7 +68,7 @@ func (g *Generator) predict() {
 		rhs := stripRhs(p)
 		lhs := stripLhs(p)
 
-		re := regexp.MustCompile("#[A-Za-z0-9]*")
+		re := regexp.MustCompile("#[A-Za-z0-9\\(\\)\\$\\,]*")
 		rhs = re.ReplaceAllString(rhs, "")
 
 		// Skip over where rhs is empty
@@ -77,32 +76,30 @@ func (g *Generator) predict() {
 		term := false
 
 		for i := 0; i < len(strs) && !term; i++ {
-
 			// If the first symbol is a terminal, add it on, it's the
 			// predict set, otherwise, find the first set for the nonterminal
 			if isTerminal(strs[i], lhs) {
 				g.predictSet.add(strs[i], Symbol {strs[i], "TERMINAL"})
-				g.predictNonTerm.add(lhs, Symbol {strs[i], "TERMINAL"})
+				g.predictTerm.add(lhs, Symbol {strs[i], "TERMINAL"})
 				term = true
 			} else {
 				for _, v := range g.firstSet[strs[i]] {
 					g.predictSet.add(strs[i], v)
-					g.predictNonTerm.add(lhs, v)
+					g.predictTerm.add(lhs, v)
 				}
 
 				// This should be safe in this nonterminal branch, as
 				// terminals will never result in lambda
 				if b, _ := g.firstSet.containsLambda(strs[i]); b {
 					g.predictSet.removeLambda(strs[i])
-					g.predictNonTerm.removeLambda(lhs)
+					g.predictTerm.removeLambda(lhs)
 
 					for _, v := range g.followSet[lhs] {
-
 						// Used to keep the various lambdas in line
 						if v.name != lambda.name {
 							temp := []string { lambda.name, lhs }
 							g.predictSet.add(strings.Join(temp, " "), v)
-							g.predictNonTerm.add(lhs, v)
+							g.predictTerm.add(lhs, v)
 						}
 					}
 				}
@@ -222,7 +219,7 @@ func (g *Generator) FillFirstSet() {
 			rhs := stripRhs(p)
 
 			// Remove any semantic information
-			re := regexp.MustCompile("\\#[a-zA-Z0-9]*")
+			re := regexp.MustCompile("#[A-Za-z0-9\\(\\)\\$,]*")
 			rhs = re.ReplaceAllString(rhs, "")
 			first := g.computeFirst(rhs)
 
@@ -246,6 +243,9 @@ func (g *Generator) FillFollowSet() {
 		for p := range g.Grammar.productions {
 			rhs := stripRhs(p)
 			lhs := stripLhs(p)
+
+			re := regexp.MustCompile("#[A-Za-z0-9\\(\\)\\$,]*")
+			rhs = re.ReplaceAllString(rhs, "")
 			a   := stripNonTerminals(rhs)
 			
 			for _, B := range a {
@@ -321,7 +321,7 @@ func nextSymbol(s, v string) Symbol {
 
 // Determines if the string is terminal or not
 func isTerminal(s string, l string) bool {
-	if (regexp.MustCompile("[[:punct:]]\\s").MatchString(s) ||
+	if (// regexp.MustCompile("[[:punct:]]\\s").MatchString(s) ||
 		!regexp.MustCompile("<[a-zA-Z\\s]*>").MatchString(s)) &&
 		l == "λ" {
 		return true

@@ -74,7 +74,6 @@ func (g *Generator) predict() {
 		// Skip over where rhs is empty
 		strs := strings.Fields(rhs)
 		term := false
-		// fmt.Printf("First ( '%s' )", rhs)
 
 		for i := 0; i < len(strs) && !term; i++ {
 

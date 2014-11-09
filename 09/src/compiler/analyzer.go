@@ -105,7 +105,7 @@ func readNonterminals (buf bytes.Buffer) {
 // any repetitions will be ignored
 func readTerminals (buf bytes.Buffer) {
 	// remove terminal symbols, arrow, semantic symbols, and pipe
-	re := regexp.MustCompile("(?:\\<[a-zA-Z0-9 ]*\\>|\\#[a-zA-Z0-9]*|->|\\|)")
+	re := regexp.MustCompile("(?:\\<[a-zA-Z0-9 ]*\\>|#[A-Za-z0-9\\(\\)\\$,]*|->|\\|)")
 	s := re.ReplaceAllString(buf.String(), " ")
 
 	strs := strings.Fields(s)
@@ -210,10 +210,8 @@ func lastTerm (s string) (bool, string) {
 	
 	if len(s) == 0 {
 		return false, s
-
 	} else if end.MatchString(s) || start.MatchString(s) {
 		return false, s
-
 	} else if nt.MatchString(s) {
 		strs := strings.Fields(s)
 		var nontermInd int
