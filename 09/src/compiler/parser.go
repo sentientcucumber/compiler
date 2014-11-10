@@ -86,7 +86,6 @@ func (p *Parser) Compiler() {
 				for i := 0; i < len(strs); i++ {
 					if strs[i] != lambda.name && strs[i][0] != '#' {
 						ss = insert(ss, 0, Symbol { name: strs[i] })
-						// ss = append(ss, Symbol { name: strs[i] })
 						count++
 					}
 				}
@@ -116,7 +115,7 @@ func (p *Parser) Compiler() {
 			stack.Pop()
 		} else {
 			stack.Pop()
-			fmt.Printf("%s\n", x.name)
+			p.processSemanticRoutine(x.name, leftIndex, rightIndex)
 		}
 		fmt.Printf("\n")
 	}
@@ -219,4 +218,33 @@ func insert(slice []Symbol, index int, value Symbol) []Symbol {
 	slice[index] = value
 
 	return slice
+}
+
+func (p *Parser) processSemanticRoutine(s string, l, r int) {
+	switch s {
+	case "#Start":
+		p.Start()
+	case "#Assign($1,$3)":
+		p.Assign()
+	case "#ReadId($1)":
+		p.ReadId()
+	case "#WriteExpr($1)":
+		p.WriteExpr()
+	case "Copy($1,$2)":
+		p.semanticCopy()
+	case "Copy($2,$$)":
+		p.semanticCopy()
+	case "#GenInfix($$,$1,$2,$$)":
+		p.GenInfix()
+	case "#Copy($1,$$)":
+		p.semanticCopy()
+	case "#ProcessLiteral($$)":
+		p.ProcessLiteral()
+	case "#ProcessOp($$)":
+		p.ProcessOp()
+	case "#Finish":
+		p.finish()
+	default:
+		panic(fmt.Errorf("Unknown semantic routine"))
+	}
 }

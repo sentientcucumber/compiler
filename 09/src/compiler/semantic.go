@@ -81,6 +81,7 @@ func (p *Parser) generate(strs ...string) {
 			buf.WriteString("\n")
 		}
 	}
+
 	p.Writer.Write(buf.Bytes())
 	p.Writer.Flush()
 }
@@ -146,4 +147,16 @@ func (p *Parser) getTemp() string {
 	p.checkId(buf.String())
 
 	return buf.String()
+}
+
+func (p *Parser) Start() {
+	p.maxSymbol = 100
+	p.lastSymbol = 0
+	p.maxTemp = 0
+	p.SymbolTable = make([]string, p.maxSymbol)
+}
+
+// generates the halt function
+func (p *Parser) finish() {
+	p.generate("HALT")
 }

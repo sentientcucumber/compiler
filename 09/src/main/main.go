@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"bytes"
+	"bufio"
 )
 
 func main() {
@@ -30,6 +31,11 @@ func main() {
 		fmt.Printf("'%s' is not a valid file name\n", os.Args[1])
 	}
 
+	// the file for writing
+	dst, _ := os.Create(os.Args[3])
+	writer := bufio.NewWriter(dst)
+	defer dst.Close()
+
 	// First file should be the grammar, second is the file being parsed
 	gmrReader := bytes.NewReader(gmr)
 	pgmReader := bytes.NewReader(pgm)
@@ -42,7 +48,7 @@ func main() {
 	g := compiler.Generator { Grammar: grammar }
 
 	// Setup the parser
-	p := compiler.Parser { Grammar: a.ReadGrammar(), Reader: *pgmReader }
+	p := compiler.Parser { Grammar: a.ReadGrammar(), Reader: *pgmReader, Writer: *writer }
 	p.Scanner = compiler.Scanner { Reader: *pgmReader }
 	p.Table = g.GetTable()
 
