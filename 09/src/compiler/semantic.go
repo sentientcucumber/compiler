@@ -27,44 +27,42 @@ func (p *Parser) WriteExpr(out SemanticRecord) {
 }
 
 // Create an assembly language-esque infix
-func (p *Parser) GenInfix(e1, op, e2 SemanticRecord) SemanticRecord {
+func (p *Parser) GenInfix(e1, op, e2 SemanticRecord, out *SemanticRecord) {
 	s := new(SemanticRecord)
 	s.exprRec.Kind = TempExpr
 	s.exprRec.Name = p.getTemp()
 
 	p.generate(p.extract(op), p.extract(e1), p.extract(e2), s.exprRec.Name)
-	return *s
+	out = s
 }
 
 // TODO placeholder for process id function
-func (p *Parser) ProcessId(s *SemanticRecord) {
+func (p *Parser) ProcessId(s SemanticRecord) {
 	s.exprRec.Kind = IdExpr
-	s.exprRec.Name = ss[currentIndex - 1].name
+	s.exprRec.Name = ss[currentIndex - 1].exprRec.Name
 
-	p.checkId(p.extract(*s))
+	p.checkId(p.extract(s))
 	s.exprRec.Kind = IdExpr
-	s.exprRec.Name = p.extract(*s)
+	s.exprRec.Name = p.extract(s)
+
+	ss[leftIndex] = s
 }
 
 // TODO placeholder for process literal function
-func (p *Parser) ProcessLiteral(s *SemanticRecord) {
+func (p *Parser) ProcessLiteral(s SemanticRecord) {
 	s.exprRec.Kind = LiteralExpr
-	s.exprRec.Name = ss[currentIndex - 1].name
+	s.exprRec.Name = ss[currentIndex - 1].exprRec.Name
 
 	s.exprRec.Kind = LiteralExpr
-	s.exprRec.Val, _ = strconv.Atoi(p.extract(*s))
+	s.exprRec.Val, _ = strconv.Atoi(p.extract(s))
+
+	ss[leftIndex] = s
 }
 
 // TODO placeholder for process op function
-func (p *Parser) ProcessOp(s *SemanticRecord) {
-	s.opRec.Op, _ = strconv.Atoi(ss[currentIndex - 1].name)
-
-	// switch s.opRec.Op {
-	// case MinusOp:
-	// 	s.opRec.Op = MinusOp
-	// case PlusOp:
-	// 	s.opRec.Op = PlusOp
-	// }
+func (p *Parser) ProcessOp(s SemanticRecord) {
+	s.opRec.Op = ss[currentIndex - 1].opRec.Op
+	ss[leftIndex] = s
 }
 
 // Used to do the actual writing of code
@@ -75,7 +73,7 @@ func (p *Parser) generate(strs ...string) {
 		buf.WriteString(s)
 		if i == 0 && len(strs) > 1 {
 			buf.WriteString(" ")
-		} else if i < len(strs)-1 {
+		} else if i < len(strs) - 1 {
 			buf.WriteString(", ")
 		} else {
 			buf.WriteString("\n")
@@ -88,7 +86,7 @@ func (p *Parser) generate(strs ...string) {
 
 // Extract various parts of the SemanticRecord
 func (p *Parser) extract(s SemanticRecord) string {
-	// if Kind is empyt, then semantic record must be an op rec
+	// if Kind is empty, then semantic record must be an op rec
 	// otherwise exprRec
 	if len(s.exprRec.Name) == 0 {
 		return p.extractOp(s.opRec)
@@ -109,6 +107,11 @@ func (p *Parser) extractOp(o OpRec) string {
 	} else {
 		return "SUB"
 	}
+}
+
+// func (p *Parser) semanticCopy(src, dest SemanticRecord) {
+func (p *Parser) semanticCopy(src, dest int) {
+	ss[dest] = ss[src]
 }
 
 // Checks to see if the symbol already exists
