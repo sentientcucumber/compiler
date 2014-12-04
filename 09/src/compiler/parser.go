@@ -15,7 +15,6 @@ import (
 	"strings"
 	"bufio"
 	"strconv"
-	// "regexp"
 )
 
 type Parser struct {
@@ -85,9 +84,9 @@ func (p *Parser) Compiler() {
 					
 					// Add symbols in reverse order for the parse stack
 					for i := len(strs) - 1; i >= 0; i-- {
-						if strs[i] != lambda.name {
+						// if strs[i] != lambda.name {
 							stack.Push(Symbol { name: strs[i] })
-						}
+						// }
 					}
 
 					// Add symbols in order for the semantic stack
@@ -244,7 +243,7 @@ func printArray (s []SemanticRecord) string {
 
 	// for _, v := range s {
 	for i := len(s) - 1; i >= 0; i-- {
-		b.WriteString(s[i].exprRec.Name + " ")
+		b.WriteString("\"" + s[i].exprRec.Name + "\" ")
 	}
 
 	return b.String()

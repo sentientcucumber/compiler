@@ -52,6 +52,8 @@
    - There still appear to be some minor issues regarding filling the
      FollowSet, but nothing that prevents a predict set form being determined
      correctly.
+** [2014-12-03 Wed]
+   Who needs to keep the change log updated? Hah! Not this guy.
 * Go Documentation
 This implentation of the scanner uses Google's new language Go. There are
 instructions on how to setup Go, a description of the file structure, and
@@ -101,151 +103,22 @@ how to compile and run the program.
    extended Micro language.
 
 * Sample Input and Output
-  The output was split up as it would not fit on one page width. The output of
-  the program organizes them into column as described in the handout.
+  Sample program
 
   #+BEGIN_SRC
-  Input for the problem from Assignment 5, 2b
-  BEGIN READ ( IN ) ; OUT := IN + 100 ; WRITE ( OUT ) ; END
-
-  Output Action
-  Parser
-  Predict 22
-  Predict 1
-  Match!
-  Predict 2
-  Predict 6
-  Match!
-  Match!
-  Predict 8
-  Match!
-  Predict 10
-  Match!
-  Match!
-  Predict 3
-  Predict 2
-  Predict 5
-  Match!
-  Match!
-  Predict 14
-  Predict 18
-  Match!
-  Predict 15
-  Predict 20
-  Match!
-  Predict 14
-  Predict 19
-  Match!
-  Predict 16
-  Match!
-  Predict 3
-  Predict 2
-  Predict 7
-  Match!
-  Match!
-  Predict 11
-  Predict 14
-  Predict 18
-  Match!
-  Predict 16
-  Predict 13
-  Match!
-  Match!
-  Predict 4
-  Match!
-  Match!
-
-  Remaining Input
-  [BEGIN READ ( IN ) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [BEGIN READ ( IN ) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [BEGIN READ ( IN ) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [READ ( IN ) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [READ ( IN ) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [READ ( IN ) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [( IN ) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [IN ) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [IN ) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [) ; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [; OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [OUT := IN + 100 ; WRITE ( OUT ) ; END]
-  [:= IN + 100 ; WRITE ( OUT ) ; END]
-  [IN + 100 ; WRITE ( OUT ) ; END]
-  [IN + 100 ; WRITE ( OUT ) ; END]
-  [IN + 100 ; WRITE ( OUT ) ; END]
-  [+ 100 ; WRITE ( OUT ) ; END]
-  [+ 100 ; WRITE ( OUT ) ; END]
-  [+ 100 ; WRITE ( OUT ) ; END]
-  [100 ; WRITE ( OUT ) ; END]
-  [100 ; WRITE ( OUT ) ; END]
-  [100 ; WRITE ( OUT ) ; END]
-  [; WRITE ( OUT ) ; END]
-  [; WRITE ( OUT ) ; END]
-  [WRITE ( OUT ) ; END]
-  [WRITE ( OUT ) ; END]
-  [WRITE ( OUT ) ; END]
-  [WRITE ( OUT ) ; END]
-  [( OUT ) ; END]
-  [OUT ) ; END]
-  [OUT ) ; END]
-  [OUT ) ; END]
-  [OUT ) ; END]
-  [) ; END]
-  [) ; END]
-  [) ; END]
-  [; END]
-  [END]
-  [END]
-  []
-
-  Parse Stack
-  <systemgoal> 
-  <program> EofSym 
-  BeginSym <stmtlist> EndSym EofSym 
-  <stmtlist> EndSym EofSym 
-  <statement> <statementtail> EndSym EofSym 
-  ReadSym LParen <idlist> RParen SemiColon <statementtail> EndSym EofSym 
-  LParen <idlist> RParen SemiColon <statementtail> EndSym EofSym 
-  <idlist> RParen SemiColon <statementtail> EndSym EofSym 
-  Id <idtail> RParen SemiColon <statementtail> EndSym EofSym 
-  <idtail> RParen SemiColon <statementtail> EndSym EofSym 
-  RParen SemiColon <statementtail> EndSym EofSym 
-  SemiColon <statementtail> EndSym EofSym 
-  <statementtail> EndSym EofSym 
-  <stmtlist> EndSym EofSym 
-  <statement> <statementtail> EndSym EofSym 
-  Id AssignOp <expression> SemiColon <statementtail> EndSym EofSym 
-  AssignOp <expression> SemiColon <statementtail> EndSym EofSym 
-  <expression> SemiColon <statementtail> EndSym EofSym 
-  <primary> <primarytail> SemiColon <statementtail> EndSym EofSym 
-  Id <primarytail> SemiColon <statementtail> EndSym EofSym 
-  <primarytail> SemiColon <statementtail> EndSym EofSym 
-  <addop> <expression> SemiColon <statementtail> EndSym EofSym 
-  PlusOp <expression> SemiColon <statementtail> EndSym EofSym 
-  <expression> SemiColon <statementtail> EndSym EofSym 
-  <primary> <primarytail> SemiColon <statementtail> EndSym EofSym 
-  IntLiteral <primarytail> SemiColon <statementtail> EndSym EofSym 
-  <primarytail> SemiColon <statementtail> EndSym EofSym 
-  SemiColon <statementtail> EndSym EofSym 
-  <statementtail> EndSym EofSym 
-  <stmtlist> EndSym EofSym 
-  <statement> <statementtail> EndSym EofSym 
-  WriteSym LParen <exprlist> RParen SemiColon <statementtail> EndSym EofSym 
-  LParen <exprlist> RParen SemiColon <statementtail> EndSym EofSym 
-  <exprlist> RParen SemiColon <statementtail> EndSym EofSym 
-  <expression> <exprtail> RParen SemiColon <statementtail> EndSym EofSym 
-  <primary> <primarytail> <exprtail> RParen SemiColon <statementtail> EndSym EofSym 
-  Id <primarytail> <exprtail> RParen SemiColon <statementtail> EndSym EofSym 
-  <primarytail> <exprtail> RParen SemiColon <statementtail> EndSym EofSym 
-  <exprtail> RParen SemiColon <statementtail> EndSym EofSym 
-  RParen SemiColon <statementtail> EndSym EofSym 
-  SemiColon <statementtail> EndSym EofSym 
-  <statementtail> EndSym EofSym 
-  EndSym EofSym 
-  EofSym 
+  BEGIN A := BB + 314 + A ; END
   #+END_SRC
-  
 
+  Resulting output
+  #+BEGIN_SRC
+  DECLARE A, INTEGER
+  DECLARE BB, INTEGER
+  DECLARE Temp&1, INTEGER
+  ADD 314, A, Temp&1
+  DECLARE Temp&2, INTEGER
+  ADD BB, 314, Temp&2
+  STORE BB, A
+  HALT
+  #+END_SRC
+
+  

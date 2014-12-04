@@ -36,7 +36,6 @@ func (p *Parser) GenInfix(e1, op, e2 SemanticRecord, out *SemanticRecord) {
 	out = s
 }
 
-// TODO placeholder for process id function
 func (p *Parser) ProcessId(s SemanticRecord) {
 	s.exprRec.Kind = IdExpr
 	s.exprRec.Name = ss[currentIndex - 1].exprRec.Name
@@ -48,20 +47,26 @@ func (p *Parser) ProcessId(s SemanticRecord) {
 	ss[leftIndex] = s
 }
 
-// TODO placeholder for process literal function
 func (p *Parser) ProcessLiteral(s SemanticRecord) {
 	s.exprRec.Kind = LiteralExpr
 	s.exprRec.Name = ss[currentIndex - 1].exprRec.Name
-
-	s.exprRec.Kind = LiteralExpr
-	s.exprRec.Val, _ = strconv.Atoi(p.extract(s))
-
+	s.exprRec.Val, _ = strconv.Atoi(ss[currentIndex - 1].exprRec.Name)
 	ss[leftIndex] = s
 }
 
-// TODO placeholder for process op function
 func (p *Parser) ProcessOp(s SemanticRecord) {
-	s.opRec.Op = ss[currentIndex - 1].opRec.Op
+	if ss[currentIndex - 1].exprRec.Name == "+" {
+		ss[currentIndex - 1].exprRec.Kind = NotExpr
+		ss[currentIndex - 1].opRec.Op = PlusOp
+		s.opRec.Op = PlusOp
+		s.exprRec.Name = "+"
+	} else {
+		ss[currentIndex - 1].exprRec.Kind = NotExpr
+		ss[currentIndex - 1].opRec.Op = MinusOp
+		s.opRec.Op = MinusOp
+		s.exprRec.Name = "-"
+	}
+
 	ss[leftIndex] = s
 }
 
@@ -86,26 +91,27 @@ func (p *Parser) generate(strs ...string) {
 
 // Extract various parts of the SemanticRecord
 func (p *Parser) extract(s SemanticRecord) string {
-	// if Kind is empty, then semantic record must be an op rec
-	// otherwise exprRec
-	if len(s.exprRec.Name) == 0 {
+	switch s.exprRec.Kind {
+	case IdExpr:
+		fallthrough
+	case TempExpr:
+		return s.exprRec.Name
+	case LiteralExpr:
+		return strconv.Itoa(s.exprRec.Val)
+	default:
 		return p.extractOp(s.opRec)
-	} else {
-		if s.exprRec.Kind == IdExpr ||
-			s.exprRec.Kind == TempExpr {
-			return s.exprRec.Name
-		} else {
-			return strconv.Itoa(s.exprRec.Val)
-		}
 	}
 }
 
 // Determine's the type of operation
 func (p *Parser) extractOp(o OpRec) string {
-	if o.Op == PlusOp {
+	switch o.Op {
+	case PlusOp:
 		return "ADD"
-	} else {
+	case MinusOp:
 		return "SUB"
+	default:
+		panic(fmt.Errorf("Incorrect operation, found %v, must be MinusOp or PlusOp", o.Op))
 	}
 }
 

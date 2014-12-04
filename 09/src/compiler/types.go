@@ -59,6 +59,7 @@ const (
 	IdExpr      ExprKind = "IdExpr"
 	LiteralExpr ExprKind = "LiteralExpr"
 	TempExpr    ExprKind = "TempExpr"
+	NotExpr     ExprKind = "NotExpr"
 )
 
 type SemanticRecord struct {
